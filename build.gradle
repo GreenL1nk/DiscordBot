@@ -4,22 +4,25 @@ plugins {
     id 'application'
 }
 
-application.mainClass = "BotMain"
+application.mainClass = "global.BotMain"
 group = "greenlink"
 version = "1.0"
 
 repositories {
     mavenCentral()
+    maven { url "https://jitpack.io" }
 }
 
 dependencies {
     implementation("net.dv8tion:JDA:5.0.0-beta.19")
-    implementation("ch.qos.logback:logback-classic:1.2.8")
+    implementation 'dev.arbjerg:lavaplayer:2.1.0'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation 'org.slf4j:slf4j-simple:2.0.10'
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.incremental = true
 
-    sourceCompatibility = '20'
+    sourceCompatibility = '19'
 }
