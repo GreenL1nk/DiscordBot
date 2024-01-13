@@ -18,8 +18,8 @@ import java.util.*;
 //Created by @GreenL1nk 10.01.2024
 public class BotMain {
 
-    public static String BOT_TOKEN = "MTA4NzM3MDUwODYxMTM3MTEzOQ.G6_Vlt.WaF-UTjmXZ6qMw2mOkIq3G_s87TywtL1UWtNqk"; //WOMEN
-//    public static String BOT_TOKEN = "NjUyMDkyNjcxNjg2NDc1ODA2.Gl19K4.FSzBK--EGfAk3gHgOQmk5V_EM-6Jbp1ywxxxsI"; //PSQ
+//    public static String BOT_TOKEN = "MTA4NzM3MDUwODYxMTM3MTEzOQ.G6_Vlt.WaF-UTjmXZ6qMw2mOkIq3G_s87TywtL1UWtNqk"; //WOMEN
+    public static String BOT_TOKEN = "NjUyMDkyNjcxNjg2NDc1ODA2.Gl19K4.FSzBK--EGfAk3gHgOQmk5V_EM-6Jbp1ywxxxsI"; //PSQ
     public static final Logger logger = LoggerFactory.getLogger(BotMain.class);
     private final List<ICommand> commandMap = new ArrayList<>();
 
