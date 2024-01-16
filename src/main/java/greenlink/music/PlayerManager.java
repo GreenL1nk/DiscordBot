@@ -9,6 +9,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 import java.util.HashMap;
 import java.util.List;
@@ -43,43 +44,27 @@ public class PlayerManager {
         });
     }
 
-    public void loadAndPlay(TextChannel channel, String trackUrl, boolean fromUrl) {
+    public void loadAndPlay(TextChannel channel, String trackUrl, boolean fromUrl, SlashCommandInteractionEvent event) {
         GuildMusicManager musicManager = this.getMusicManager(channel.getGuild());
-
+        event.deferReply().queue();
+        if (musicManager.trackScheduler.message == null) {
+            musicManager.trackScheduler.message = event.getHook();
+            musicManager.trackScheduler.message.editOriginalComponents(musicManager.trackScheduler.getActionRow()).queue();
+        }
         this.audioPlayerManager.loadItemOrdered(musicManager, trackUrl, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
                 musicManager.trackScheduler.queue(track);
-
-                channel.sendMessage("Adding to queue: `")
-                        .addContent(track.getInfo().title)
-                        .addContent("` by `")
-                        .addContent(track.getInfo().author)
-                        .addContent("`")
-                        .queue();
             }
 
             @Override
             public void playlistLoaded(AudioPlaylist playlist) {
                 List<AudioTrack> tracks = playlist.getTracks();
                 if (fromUrl) {
-                    channel.sendMessage("Adding to queue: `")
-                            .addContent(String.valueOf(tracks.size()))
-                            .addContent("` tracks from playlist `")
-                            .addContent(playlist.getName())
-                            .addContent("`")
-                            .queue();
-
                     tracks.forEach(musicManager.trackScheduler::queue);
                 }
                 else {
                     AudioTrack track = tracks.get(0);
-                    channel.sendMessage("Adding to queue: `")
-                            .addContent(track.getInfo().title)
-                            .addContent("` by `")
-                            .addContent(track.getInfo().author)
-                            .addContent("`")
-                            .queue();
                     musicManager.trackScheduler.queue(track);
                 }
             }

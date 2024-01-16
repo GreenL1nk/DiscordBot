@@ -18,11 +18,17 @@ dependencies {
     implementation 'dev.arbjerg:lavaplayer:2.1.0'
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
     implementation 'org.slf4j:slf4j-simple:2.0.10'
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+    implementation 'commons-io:commons-io:2.15.1'
+}
+
+shadowJar {
+    archiveFileName = "bot.jar"
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.incremental = true
 
-    sourceCompatibility = '19'
+    sourceCompatibility = '17'
 }

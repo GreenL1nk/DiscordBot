@@ -1,9 +1,9 @@
 package greenlink.music.commands;
 
-import global.BotMain;
 import global.commands.SlashCommand;
 import greenlink.music.PlayerManager;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -21,17 +21,17 @@ public class PlayCommand extends SlashCommand {
     @Override
     public void execute(SlashCommandInteractionEvent event) {
         if(event.getOptions().isEmpty()) {
-            event.reply("You need to specify a music. Usage: '/play <music>'").setEphemeral(true).queue();
+            event.reply("Использование: '/play <music>'").setEphemeral(true).queue();
             return;
         }
         if (event.getMember() == null) return;
         if (event.getMember().getVoiceState() == null) return;
 
         if(!event.getMember().getVoiceState().inAudioChannel()) {
-            event.reply("You must be in an audio channel to perform that command.").setEphemeral(true).queue();
+            event.reply("Вы должны находиться в голосовом чате, для использования.").setEphemeral(true).queue();
             return;
         }
-        event.deferReply();
+        if (event.getGuild() == null) return;
 
         if(!event.getGuild().getSelfMember().getVoiceState().inAudioChannel()){
             final AudioManager audioManager = event.getGuild().getAudioManager();
@@ -45,7 +45,8 @@ public class PlayCommand extends SlashCommand {
         if (!isUrl) {
             link = "ytsearch:" + link;
         }
-        PlayerManager.getInstance().loadAndPlay(event.getChannel().asTextChannel(), link, isUrl);
+        MessageChannelUnion channel = event.getChannel();
+        PlayerManager.getInstance().loadAndPlay(channel.asTextChannel(), link, isUrl, event);
     }
 
     private boolean isUrl(String input) {
@@ -69,6 +70,6 @@ public class PlayCommand extends SlashCommand {
 
     @Override
     public String getDescription() {
-        return "Ставит трек";
+        return "Ставит аудио из названия или ссылки ютуба";
     }
 }
