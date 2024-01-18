@@ -13,6 +13,7 @@ public class IncreaseVolumeButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
+        if (!memberCanPerform(event.getMember(), event)) return;
 
         GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
         if (musicManager.audioPlayer.getVolume() < 200) {

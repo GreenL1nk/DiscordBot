@@ -5,9 +5,12 @@ import global.buttons.ButtonManager;
 import global.commands.SlashCommandsListener;
 import global.commands.SlashCommandsManager;
 import global.config.ConfigManager;
+import global.selectmenus.SelectMenuListener;
+import global.selectmenus.SelectMenusManager;
+import greenlink.music.selectmenus.SelectTrackMenu;
 import greenlink.music.buttons.*;
 import greenlink.music.commands.PlayCommand;
-import greenlink.music.commands.StopCommand;
+import greenlink.music.selectmenus.SetTrackMenu;
 import io.github.cdimascio.dotenv.Dotenv;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -31,13 +34,15 @@ public class BotMain {
         jda = JDABuilder.createDefault(token)
                 .addEventListeners(
                         new SlashCommandsListener(),
-                        new ButtonListener()
+                        new ButtonListener(),
+                        new SelectMenuListener()
                 )
                 .enableIntents(GatewayIntent.GUILD_VOICE_STATES)
                 .enableCache(CacheFlag.VOICE_STATE)
                 .build();
         addCommands();
         addButtons();
+        addSelectMenus();
         SlashCommandsManager.getInstance().updateCommands(jda);
 
         instance = this;
@@ -45,8 +50,14 @@ public class BotMain {
 
     public void addCommands() {
         SlashCommandsManager.getInstance().addCommands(
-                new PlayCommand(),
-                new StopCommand()
+                new PlayCommand()
+        );
+    }
+
+    public void addSelectMenus() {
+        SelectMenusManager.getInstance().addMenus(
+                new SelectTrackMenu(),
+                new SetTrackMenu()
         );
     }
 
@@ -61,7 +72,8 @@ public class BotMain {
                 new RepeatTrackButton(),
                 new RepeatPlaylistButton(),
                 new ShuffleButton(),
-                new ViewQueueButton()
+                new ViewQueueButton(),
+                new CancelButton()
         );
     }
 

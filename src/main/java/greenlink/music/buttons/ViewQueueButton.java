@@ -6,9 +6,14 @@ import global.utils.Utils;
 import greenlink.music.GuildMusicManager;
 import greenlink.music.PlayerManager;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static net.dv8tion.jda.api.interactions.components.selections.SelectOption.LABEL_MAX_LENGTH;
 
 /**
  * @author t.me/GreenL1nk
@@ -18,20 +23,27 @@ public class ViewQueueButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
+        if (!memberCanPerform(event.getMember(), event)) return;
 
         GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
         List<AudioTrack> trackList = new ArrayList<>(musicManager.trackScheduler.queue);
-        StringBuilder message = new StringBuilder("```\n");
-        int size = Math.min(trackList.size(), 15);
-        for (int i = 1; i < size + 1; i++) {
-            AudioTrack audioTrack = trackList.get(i - 1);
-            message.append(i).append(". ").append(Utils.capitalizeFirstLetter(audioTrack.getInfo().title)).append(" - ").append(Utils.formatTime(audioTrack.getDuration())).append("\n");
+
+        StringSelectMenu.Builder dropdown = StringSelectMenu.create("set-track");
+        if (trackList.isEmpty()) {
+            event.deferEdit().queue();
+            return;
         }
-        if (trackList.size() > 15) {
-            message.append("\nИ ещё ").append(trackList.size() - 15).append("...");
+        dropdown.setMaxValues(Math.min(25, trackList.size()));
+        for (AudioTrack track : trackList) {
+            String title = track.getInfo().title + " " + Utils.formatTime(track.getDuration());
+            String minTitle = title.length() <= LABEL_MAX_LENGTH ? title : title.substring(0, LABEL_MAX_LENGTH);
+            if (dropdown.getOptions().stream().anyMatch(selectOption -> selectOption.getValue().equals(minTitle))) continue;
+            dropdown.addOptions(SelectOption.of(minTitle, track.getIdentifier()).withDescription(track.getInfo().author));
+            if (dropdown.getOptions().size() == 25) break;
         }
-        message.append("```");
-        event.reply(String.valueOf(message)).setEphemeral(true).queue();
+
+        ActionRow actionRow = ActionRow.of(dropdown.build());
+        event.replyComponents(actionRow).setEphemeral(true).queue();
     }
 
     @Override

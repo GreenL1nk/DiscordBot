@@ -4,6 +4,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
+import global.BotMain;
 import global.utils.Utils;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -16,9 +17,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @author t.me/GreenL1nk
@@ -26,13 +30,15 @@ import java.util.concurrent.LinkedBlockingDeque;
  */
 public class TrackScheduler extends AudioEventAdapter {
     public final AudioPlayer audioPlayer;
-    public final BlockingDeque<AudioTrack> queue;
+    public BlockingDeque<AudioTrack> queue;
     public final BlockingDeque<AudioTrack> history;
     public boolean repeatTrack = false;
     public boolean repeatPlayList = false;
     public boolean saveHistory = true;
     public InteractionHook message;
     public AudioTrack currentTrack;
+    public HashMap<Long, ArrayList<AudioTrack>> chooseTrack = new HashMap<>();
+    public boolean needAddButtons = true;
 
     public TrackScheduler(AudioPlayer audioPlayer) {
         this.audioPlayer = audioPlayer;
@@ -83,13 +89,37 @@ public class TrackScheduler extends AudioEventAdapter {
         }
     }
 
+    public void playQueuedTrackById(String ... ids) {
+        BlockingDeque<AudioTrack> newQueue = new LinkedBlockingDeque<>();
+        ArrayList<AudioTrack> copyQueue = new ArrayList<>(queue);
+        for (String id : ids) {
+            AudioTrack queueTrackById = getQueueTrackById(id);
+            if (queueTrackById == null) return;
+            saveHistory = true;
+            if (!audioPlayer.startTrack(queueTrackById, true)) {
+                newQueue.offer(queueTrackById);
+            }
+            copyQueue.remove(queueTrackById);
+        }
+        newQueue.addAll(copyQueue);
+        this.queue.clear();
+        this.queue = newQueue;
+        updateMessage();
+    }
+
+    @Nullable
+    public AudioTrack getQueueTrackById(String id) {
+        ArrayList<AudioTrack> tracks = new ArrayList<>(queue);
+        return tracks.stream().filter(audioTrack -> audioTrack.getIdentifier().equals(id)).findFirst().orElse(null);
+    }
+
     public void onQueueUpdate() {
         updateMessage();
     }
 
     public void updateMessage() {
         EmbedBuilder embedBuilder = getEmbedBuilder(currentTrack);
-        message.editOriginalEmbeds(embedBuilder.build()).queue();
+        message.editOriginalEmbeds(embedBuilder.build()).setComponents(getSituationalRow()).queue();
     }
 
     @NotNull
@@ -100,8 +130,13 @@ public class TrackScheduler extends AudioEventAdapter {
         embedBuilder.setColor(Color.decode("#e32a2a"));
         if (nextTrack != null) {
             embedBuilder.setFooter(String.format("%s - %s" +
-                                    "\n (В очереди ещё: %d)",
-                    nextTrack.getInfo().title, Utils.formatTime(nextTrack.getDuration()), queue.size()),
+                                    "\n (В очереди ещё: %d)" +
+                                    "\n (Общее время: %s)",
+                            nextTrack.getInfo().title,
+                            Utils.formatTime(nextTrack.getDuration()),
+                            queue.size(),
+                            Utils.formatTime(queue.stream().mapToLong(AudioTrack::getDuration).sum())
+                    ),
                     nextTrack.getInfo().artworkUrl);
 
         }
@@ -124,40 +159,111 @@ public class TrackScheduler extends AudioEventAdapter {
     }
 
     public void deleteMessage() {
-        audioPlayer.stopTrack();
-        queue.clear();
         message.deleteOriginal().queue();
         message = null;
+        needAddButtons = true;
     }
 
-    public ActionRow[] getActionRow() {
-        List<ActionRow> actionRows = new ArrayList<>();
+    public void stop() {
+        currentTrack = null;
+        repeatTrack = false;
+        repeatPlayList = false;
+        saveHistory = true;
+        deleteMessage();
+        audioPlayer.stopTrack();
+        queue.clear();
+        history.clear();
+        audioPlayer.setPaused(false);
+        audioPlayer.destroy();
+    }
 
-        List<Button> row1Buttons = new ArrayList<>();
-        row1Buttons.add(Button.of(ButtonStyle.PRIMARY, "previoustrack", "Предыдущий", Emoji.fromUnicode("⏪")));
-        row1Buttons.add(Button.of(ButtonStyle.PRIMARY, "nexttrack", "Следующий", Emoji.fromUnicode("⏩")));
-        actionRows.add(ActionRow.of(row1Buttons));
+//    public ActionRow[] getActionRow() {
+//        List<Button> buttons = new ArrayList<>();
+//
+//        buttons.add(Button.of(ButtonStyle.PRIMARY, "previoustrack", "Предыдущий", Emoji.fromUnicode("⏪")));
+//        buttons.add(Button.of(ButtonStyle.PRIMARY, "nexttrack", "Следующий", Emoji.fromUnicode("⏩")));
+//
+//        buttons.add(Button.of(ButtonStyle.SUCCESS, "decresevolume", "Уменьшить", Emoji.fromUnicode("🔉")));
+//        buttons.add(Button.of(ButtonStyle.SUCCESS, "increasevolume", "Увеличить", Emoji.fromUnicode("🔊")));
+//
+//        buttons.add(Button.of(ButtonStyle.DANGER, "stoptracks", "Остановить", Emoji.fromUnicode("⏹️")));
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Пауза", Emoji.fromUnicode("⏸️")));
+//
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")));
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")));
+//
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")));
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "viewqueue", "Посмотреть очередь", Emoji.fromUnicode("📃")));
+//
+//        return processButtons(buttons).toArray(new ActionRow[0]);
+//    }
 
-        List<Button> row2Buttons = new ArrayList<>();
-        row2Buttons.add(Button.of(ButtonStyle.SUCCESS, "decresevolume", "Уменьшить", Emoji.fromUnicode("🔉")));
-        row2Buttons.add(Button.of(ButtonStyle.SUCCESS, "increasevolume", "Увеличить", Emoji.fromUnicode("🔊")));
-        actionRows.add(ActionRow.of(row2Buttons));
+//    public ActionRow[] getActionRowDisabled() {
+//        List<Button> buttons = new ArrayList<>();
+//
+//        buttons.add(Button.of(ButtonStyle.PRIMARY, "previoustrack", "Предыдущий", Emoji.fromUnicode("⏪")).asDisabled());
+//        buttons.add(Button.of(ButtonStyle.PRIMARY, "nexttrack", "Следующий", Emoji.fromUnicode("⏩")).asDisabled());
+//
+//        buttons.add(Button.of(ButtonStyle.SUCCESS, "decresevolume", "Уменьшить", Emoji.fromUnicode("🔉")).asDisabled());
+//        buttons.add(Button.of(ButtonStyle.SUCCESS, "increasevolume", "Увеличить", Emoji.fromUnicode("🔊")).asDisabled());
+//
+//        buttons.add(Button.of(ButtonStyle.DANGER, "stoptracks", "Остановить", Emoji.fromUnicode("⏹️")).asDisabled());
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Возобновить",  Emoji.fromUnicode("▶️")));
+//
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")).asDisabled());
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")).asDisabled());
+//
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")).asDisabled());
+//        buttons.add(Button.of(ButtonStyle.SECONDARY, "viewqueue", "Посмотреть очередь", Emoji.fromUnicode("📃")).asDisabled());
+//
+//        return processButtons(buttons).toArray(new ActionRow[0]);
+//    }
 
-        List<Button> row3Buttons = new ArrayList<>();
-        row3Buttons.add(Button.of(ButtonStyle.DANGER, "stoptracks", "Остановить", Emoji.fromUnicode("⏹️")));
-        row3Buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Пауза", Emoji.fromUnicode("⏸️")));
-        actionRows.add(ActionRow.of(row3Buttons));
+    public List<ActionRow> getSituationalRow() {
+        List<Button> buttons = new ArrayList<>();
 
-        List<Button> row4Buttons = new ArrayList<>();
-        row4Buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")));
-        row4Buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")));
-        actionRows.add(ActionRow.of(row4Buttons));
+        if (getPreviousTrack() == null || audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.PRIMARY, "previoustrack", "Предыдущий", Emoji.fromUnicode("⏪")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.PRIMARY, "previoustrack", "Предыдущий", Emoji.fromUnicode("⏪")).asEnabled());
+        if (getNextTrack() == null || audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.PRIMARY, "nexttrack", "Следующий", Emoji.fromUnicode("⏩")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.PRIMARY, "nexttrack", "Следующий", Emoji.fromUnicode("⏩")).asEnabled());
 
-        List<Button> row5Buttons = new ArrayList<>();
-        row5Buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")));
-        row5Buttons.add(Button.of(ButtonStyle.SECONDARY, "viewqueue", "Посмотреть очередь", Emoji.fromUnicode("📃")));
-        actionRows.add(ActionRow.of(row5Buttons));
+        if (audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.SUCCESS, "decresevolume", "Уменьшить", Emoji.fromUnicode("🔉")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.SUCCESS, "decresevolume", "Уменьшить", Emoji.fromUnicode("🔉")).asEnabled());
+        if (audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.SUCCESS, "increasevolume", "Увеличить", Emoji.fromUnicode("🔊")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.SUCCESS, "increasevolume", "Увеличить", Emoji.fromUnicode("🔊")).asEnabled());
 
-        return actionRows.toArray(new ActionRow[0]);
+        buttons.add(Button.of(ButtonStyle.DANGER, "stoptracks", "Остановить", Emoji.fromUnicode("⏹️")).asEnabled());
+        if (audioPlayer.isPaused()) {
+            buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Возобновить", Emoji.fromUnicode("▶️")));
+        }
+        else {
+            buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Пауза", Emoji.fromUnicode("⏸️")));
+        }
+
+        if (audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")).asEnabled());
+        if (audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")).asEnabled());
+
+        if (this.queue.isEmpty() || this.queue.size() == 1) buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")).asEnabled());
+        if (this.queue.isEmpty()) buttons.add(Button.of(ButtonStyle.SECONDARY, "viewqueue", "Посмотреть очередь", Emoji.fromUnicode("📃")).asDisabled());
+        else buttons.add(Button.of(ButtonStyle.SECONDARY, "viewqueue", "Посмотреть очередь", Emoji.fromUnicode("📃")).asEnabled());
+
+        return processButtons(buttons);
+    }
+
+    public List<ActionRow> processButtons(List<Button> buttons) {
+        List<ArrayList<Button>> buttonLists = IntStream.range(0, buttons.size())
+                .filter(i -> i % 2 == 0)
+                .mapToObj(i -> new ArrayList<>(buttons.subList(i, Math.min(i + 2, buttons.size()))))
+                .toList();
+
+        return buttonLists.stream()
+                .map(this::createActionRow)
+                .collect(Collectors.toList());
+    }
+    private ActionRow createActionRow(ArrayList<Button> buttonList) {
+        return ActionRow.of(buttonList);
     }
 }

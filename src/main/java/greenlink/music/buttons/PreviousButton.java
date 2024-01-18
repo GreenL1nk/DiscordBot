@@ -14,6 +14,7 @@ public class PreviousButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
+        if (!memberCanPerform(event.getMember(), event)) return;
         GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
         musicManager.trackScheduler.previousTrack();
         event.deferEdit().queue();
