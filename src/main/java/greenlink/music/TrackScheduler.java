@@ -4,9 +4,9 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
-import global.BotMain;
 import global.utils.Utils;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -39,6 +39,7 @@ public class TrackScheduler extends AudioEventAdapter {
     public AudioTrack currentTrack;
     public HashMap<Long, ArrayList<AudioTrack>> chooseTrack = new HashMap<>();
     public boolean needAddButtons = true;
+    private Member requester;
 
     public TrackScheduler(AudioPlayer audioPlayer) {
         this.audioPlayer = audioPlayer;
@@ -92,14 +93,16 @@ public class TrackScheduler extends AudioEventAdapter {
     public void playQueuedTrackById(String ... ids) {
         BlockingDeque<AudioTrack> newQueue = new LinkedBlockingDeque<>();
         ArrayList<AudioTrack> copyQueue = new ArrayList<>(queue);
+        saveHistory = true;
         for (String id : ids) {
-            AudioTrack queueTrackById = getQueueTrackById(id);
+            String audioId = id.substring(0, id.indexOf("~~~"));
+            AudioTrack queueTrackById = getQueueTrackById(audioId);
             if (queueTrackById == null) return;
-            saveHistory = true;
-            if (!audioPlayer.startTrack(queueTrackById, true)) {
+            copyQueue.remove(queueTrackById);
+            queueTrackById = queueTrackById.makeClone();
+            if (!audioPlayer.startTrack(queueTrackById,true)) {
                 newQueue.offer(queueTrackById);
             }
-            copyQueue.remove(queueTrackById);
         }
         newQueue.addAll(copyQueue);
         this.queue.clear();
@@ -159,7 +162,7 @@ public class TrackScheduler extends AudioEventAdapter {
     }
 
     public void deleteMessage() {
-        message.deleteOriginal().queue();
+        message.retrieveOriginal().queue(m -> m.delete().queue());
         message = null;
         needAddButtons = true;
     }
@@ -170,54 +173,13 @@ public class TrackScheduler extends AudioEventAdapter {
         repeatPlayList = false;
         saveHistory = true;
         deleteMessage();
+        setRequester(null);
         audioPlayer.stopTrack();
         queue.clear();
         history.clear();
         audioPlayer.setPaused(false);
         audioPlayer.destroy();
     }
-
-//    public ActionRow[] getActionRow() {
-//        List<Button> buttons = new ArrayList<>();
-//
-//        buttons.add(Button.of(ButtonStyle.PRIMARY, "previoustrack", "Предыдущий", Emoji.fromUnicode("⏪")));
-//        buttons.add(Button.of(ButtonStyle.PRIMARY, "nexttrack", "Следующий", Emoji.fromUnicode("⏩")));
-//
-//        buttons.add(Button.of(ButtonStyle.SUCCESS, "decresevolume", "Уменьшить", Emoji.fromUnicode("🔉")));
-//        buttons.add(Button.of(ButtonStyle.SUCCESS, "increasevolume", "Увеличить", Emoji.fromUnicode("🔊")));
-//
-//        buttons.add(Button.of(ButtonStyle.DANGER, "stoptracks", "Остановить", Emoji.fromUnicode("⏹️")));
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Пауза", Emoji.fromUnicode("⏸️")));
-//
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")));
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")));
-//
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")));
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "viewqueue", "Посмотреть очередь", Emoji.fromUnicode("📃")));
-//
-//        return processButtons(buttons).toArray(new ActionRow[0]);
-//    }
-
-//    public ActionRow[] getActionRowDisabled() {
-//        List<Button> buttons = new ArrayList<>();
-//
-//        buttons.add(Button.of(ButtonStyle.PRIMARY, "previoustrack", "Предыдущий", Emoji.fromUnicode("⏪")).asDisabled());
-//        buttons.add(Button.of(ButtonStyle.PRIMARY, "nexttrack", "Следующий", Emoji.fromUnicode("⏩")).asDisabled());
-//
-//        buttons.add(Button.of(ButtonStyle.SUCCESS, "decresevolume", "Уменьшить", Emoji.fromUnicode("🔉")).asDisabled());
-//        buttons.add(Button.of(ButtonStyle.SUCCESS, "increasevolume", "Увеличить", Emoji.fromUnicode("🔊")).asDisabled());
-//
-//        buttons.add(Button.of(ButtonStyle.DANGER, "stoptracks", "Остановить", Emoji.fromUnicode("⏹️")).asDisabled());
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Возобновить",  Emoji.fromUnicode("▶️")));
-//
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")).asDisabled());
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")).asDisabled());
-//
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")).asDisabled());
-//        buttons.add(Button.of(ButtonStyle.SECONDARY, "viewqueue", "Посмотреть очередь", Emoji.fromUnicode("📃")).asDisabled());
-//
-//        return processButtons(buttons).toArray(new ActionRow[0]);
-//    }
 
     public List<ActionRow> getSituationalRow() {
         List<Button> buttons = new ArrayList<>();
@@ -265,5 +227,13 @@ public class TrackScheduler extends AudioEventAdapter {
     }
     private ActionRow createActionRow(ArrayList<Button> buttonList) {
         return ActionRow.of(buttonList);
+    }
+
+    public Member getRequester() {
+        return requester;
+    }
+
+    public void setRequester(Member requester) {
+        this.requester = requester;
     }
 }

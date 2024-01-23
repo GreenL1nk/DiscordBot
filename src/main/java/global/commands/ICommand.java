@@ -1,10 +1,16 @@
 package global.commands;
 
+import global.BotMain;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
 import net.dv8tion.jda.api.events.Event;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +21,6 @@ import java.util.List;
  */
 public interface ICommand {
 
-    List<String> aliases = new ArrayList<>();
     List<Role> roles = new ArrayList<>();
     List<Channel> channels = new ArrayList<>();
 
@@ -26,10 +31,6 @@ public interface ICommand {
     String getName();
 
     /**
-     * Override this function to add command aliases;
-     */
-    void updateAliases();
-    /**
      * Override this function to add your specific authorized roles ex:
      * roles.add(jda.getGuildById().getRoleById("myRoleID"));
      */
@@ -39,10 +40,6 @@ public interface ICommand {
      * channels.add(jda.getChannelByID("myChannelID"));
      */
     void updateChannels(JDA jda);
-
-    default List<String> getAliases() {
-        return aliases;
-    }
 
     String getDescription();
 
@@ -62,5 +59,14 @@ public interface ICommand {
     default boolean hasChannel(Channel channel) {
         if (channels.isEmpty()) return true;
         return channels.contains(channel);
+    }
+
+    default boolean memberCanPerform(Member member, SlashCommandInteractionEvent event) {
+        Guild guild = event.getGuild();
+        if (guild == null) return false;
+        if (member == null) return false;
+
+        BotMain.logger.debug(String.valueOf(event.getGuild().getIdLong() == member.getIdLong()));
+        return event.getGuild().getIdLong() == member.getGuild().getIdLong();
     }
 }

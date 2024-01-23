@@ -4,14 +4,16 @@ import global.buttons.ButtonListener;
 import global.buttons.ButtonManager;
 import global.commands.SlashCommandsListener;
 import global.commands.SlashCommandsManager;
-import global.config.ConfigManager;
+import global.config.Config;
 import global.selectmenus.SelectMenuListener;
 import global.selectmenus.SelectMenusManager;
-import greenlink.music.selectmenus.SelectTrackMenu;
+import greenlink.economy.commands.*;
+import greenlink.music.BotLeftScheduler;
+import greenlink.music.MusicBotListener;
 import greenlink.music.buttons.*;
+import greenlink.music.selectmenus.SelectTrackMenu;
 import greenlink.music.commands.PlayCommand;
 import greenlink.music.selectmenus.SetTrackMenu;
-import io.github.cdimascio.dotenv.Dotenv;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -25,17 +27,17 @@ public class BotMain {
 
     private final JDA jda;
     private static BotMain instance;
-    private final Dotenv config;
 
     public BotMain() {
-        ConfigManager.getInstance().ensureConfigFileExists();
-        config = Dotenv.configure().load();
-        String token = config.get("Token");
-        jda = JDABuilder.createDefault(token)
+        Config.getInstance();
+
+        jda = JDABuilder.createDefault(Config.getInstance().getToken())
                 .addEventListeners(
                         new SlashCommandsListener(),
                         new ButtonListener(),
-                        new SelectMenuListener()
+                        new SelectMenuListener(),
+                        new BotLeftScheduler(),
+                        new MusicBotListener()
                 )
                 .enableIntents(GatewayIntent.GUILD_VOICE_STATES)
                 .enableCache(CacheFlag.VOICE_STATE)
@@ -50,7 +52,17 @@ public class BotMain {
 
     public void addCommands() {
         SlashCommandsManager.getInstance().addCommands(
-                new PlayCommand()
+                new PlayCommand(),
+                new ProfileCommand(),
+                new WorkCommand(),
+                new TimelyCommand(),
+                new DailyCommand(),
+                new WeeklyCommand(),
+                new MonthlyCommand(),
+                new RobCommand(),
+                new DepositCommand(),
+                new WithdrawCommand(),
+                new LeaderBoardCommand()
         );
     }
 
@@ -87,9 +99,5 @@ public class BotMain {
 
     public JDA getJda() {
         return jda;
-    }
-
-    public Dotenv getConfig() {
-        return config;
     }
 }

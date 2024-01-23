@@ -1,8 +1,10 @@
 package greenlink.music.commands;
 
 import global.commands.SlashCommand;
+import greenlink.music.GuildMusicManager;
 import greenlink.music.PlayerManager;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -34,10 +36,30 @@ public class PlayCommand extends SlashCommand {
         if (event.getGuild() == null) return;
 
         if(!event.getGuild().getSelfMember().getVoiceState().inAudioChannel()){
-            final AudioManager audioManager = event.getGuild().getAudioManager();
-            final VoiceChannel memberChannel = (VoiceChannel) event.getMember().getVoiceState().getChannel();
+            AudioManager audioManager = event.getGuild().getAudioManager();
+            VoiceChannel memberChannel = (VoiceChannel) event.getMember().getVoiceState().getChannel();
 
             audioManager.openAudioConnection(memberChannel);
+        }
+        else {
+            AudioChannelUnion botChannel = event.getGuild().getSelfMember().getVoiceState().getChannel();
+            AudioChannelUnion memberChannel = event.getMember().getVoiceState().getChannel();
+            if (botChannel == null) return;
+            if (memberChannel == null) return;
+            if (botChannel.getIdLong() != memberChannel.getIdLong()) {
+                event.deferReply(true).addContent(String.format("Музыка уже воспроизводится в <#%d>", botChannel.getIdLong())).queue();
+                return;
+            }
+        }
+        GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
+        if (musicManager.trackScheduler.getRequester() == null) {
+            musicManager.trackScheduler.setRequester(event.getMember());
+        }
+        else {
+            if (musicManager.trackScheduler.getRequester().getIdLong() != event.getMember().getIdLong()) {
+                event.deferReply(true).addContent(String.format("За эту очередь отвечает <@%s>", musicManager.trackScheduler.getRequester().getIdLong())).queue();
+                return;
+            }
         }
 
         String link = event.getOptions().get(0).getAsString();

@@ -1,10 +1,15 @@
 package global.commands;
 
+import global.BotMain;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -14,6 +19,7 @@ import java.util.List;
 public class SlashCommandsManager {
     private static SlashCommandsManager instance;
     private final List<ICommand> commandMap = new ArrayList<>();
+    private List<Command> guildCommandsMap = new ArrayList<>();
 
     private SlashCommandsManager() {
     }
@@ -25,11 +31,12 @@ public class SlashCommandsManager {
                 slashCommand.updateOptions();
                 commands.add(Commands.slash(command.getName(), slashCommand.getDescription()).addOptions(slashCommand.getOptions()));
             }
-            command.updateAliases();
             command.updateChannels(jda);
             command.updateRoles(jda);
         });
-        jda.updateCommands().addCommands(commands).queue();
+        jda.updateCommands().addCommands(commands).queue(c -> {
+            guildCommandsMap = c;
+        });
     }
 
     public void addCommands(ICommand ... iCommand) {
@@ -43,5 +50,12 @@ public class SlashCommandsManager {
             instance = new SlashCommandsManager();
         }
         return instance;
+    }
+
+    @Nullable
+    public Long getCommandByName(String name) {
+        Command command = this.guildCommandsMap.stream().filter(c -> c.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+        if (command == null) return null;
+        return command.getIdLong();
     }
 }

@@ -6,8 +6,7 @@
         </encoder>
     </appender>
 
-<!--    <root level="info">-->
-    <root level="debug">
+    <root level="${log.level:-info}">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

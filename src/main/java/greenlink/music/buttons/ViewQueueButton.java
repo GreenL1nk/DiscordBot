@@ -37,8 +37,8 @@ public class ViewQueueButton implements IButton {
         for (AudioTrack track : trackList) {
             String title = track.getInfo().title + " " + Utils.formatTime(track.getDuration());
             String minTitle = title.length() <= LABEL_MAX_LENGTH ? title : title.substring(0, LABEL_MAX_LENGTH);
-            if (dropdown.getOptions().stream().anyMatch(selectOption -> selectOption.getValue().equals(minTitle))) continue;
-            dropdown.addOptions(SelectOption.of(minTitle, track.getIdentifier()).withDescription(track.getInfo().author));
+            String uuid = "~~~" + dropdown.getOptions().size();
+            dropdown.addOptions(SelectOption.of(minTitle, track.getIdentifier() + uuid).withDescription(track.getInfo().author));
             if (dropdown.getOptions().size() == 25) break;
         }
 

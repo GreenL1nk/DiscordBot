@@ -17,14 +17,6 @@ public abstract class SlashCommand implements ICommand {
     abstract public void execute(SlashCommandInteractionEvent event);
 
     /**
-     * Override this function to add command aliases;
-     */
-    @Override
-    public void updateAliases() {
-
-    }
-
-    /**
      * Override this function to add your specific authorized roles ex:
      * roles.add(jda.getGuildById().getRoleById("myRoleID"));
      */

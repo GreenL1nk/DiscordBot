@@ -10,7 +10,9 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import global.BotMain;
 import global.utils.Utils;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -18,11 +20,15 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static net.dv8tion.jda.api.interactions.components.selections.SelectOption.LABEL_MAX_LENGTH;
 
@@ -47,7 +53,7 @@ public class PlayerManager {
     public GuildMusicManager getMusicManager(Guild guild) {
         return musicManagers.computeIfAbsent(guild.getIdLong(), (guildId) -> {
             final GuildMusicManager guildMusicManager = new GuildMusicManager(this.audioPlayerManager);
-
+            guildMusicManager.removeScheduler(guild);
             guild.getAudioManager().setSendingHandler(guildMusicManager.getSendHandler());
 
             return guildMusicManager;
@@ -55,6 +61,7 @@ public class PlayerManager {
     }
 
     public void loadAndPlay(TextChannel channel, String trackUrl, boolean fromUrl, SlashCommandInteractionEvent event) {
+        if (event.getMember() == null) return;
         GuildMusicManager musicManager = this.getMusicManager(channel.getGuild());
         TrackScheduler trackScheduler = musicManager.trackScheduler;
         if (trackScheduler.message == null) {
@@ -63,7 +70,6 @@ public class PlayerManager {
                 trackScheduler.message.editOriginalComponents(trackScheduler.getSituationalRow()).queue();
             }
         }
-//        else event.getHook().deleteOriginal().queue();
         trackScheduler.chooseTrack.computeIfAbsent(event.getMember().getIdLong(), key -> new ArrayList<>());
         this.audioPlayerManager.loadItemOrdered(musicManager, trackUrl, new AudioLoadResultHandler() {
             @Override

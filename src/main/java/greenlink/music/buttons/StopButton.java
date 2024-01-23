@@ -1,10 +1,8 @@
 package greenlink.music.buttons;
 
 import global.buttons.IButton;
-import greenlink.music.GuildMusicManager;
 import greenlink.music.PlayerManager;
-import net.dv8tion.jda.api.entities.GuildVoiceState;
-import net.dv8tion.jda.api.entities.Member;
+import greenlink.music.GuildMusicManager;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 /**

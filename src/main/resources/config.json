@@ -1,0 +1,42 @@
+{
+  "token": "",
+  "mySQLEnable": false,
+  "mySQLHost": "",
+  "mySQLPort": "3306",
+  "mySQLUser": "",
+  "mySQLDbname": "",
+  "mySQLPassword": "",
+  "botVoiceTimeout": 15,
+  "coinIcon": ":coin:",
+  "cashIcon": ":dollar:",
+  "bankIcon": ":credit_card:",
+  "totalCoinsIcon": ":moneybag:",
+  "infoIcon": ":receipt:",
+  "levelIcon": ":star:",
+  "jobIcon": ":baggage_claim:",
+  "firstLevelXP": 10,
+  "xpFormula": 1.2,
+  "workCooldown": 30,
+  "timelyCooldown": 20,
+  "dailyCooldown": 1440,
+  "weeklyCooldown": 10080,
+  "monthlyCooldown": 44640,
+  "robCooldown": 10,
+  "jobs": [
+    {
+      "message": "<user> получил назначение на должность **геолога** и заработал <value>",
+      "highValue": 100,
+      "lowValue": 50
+    },
+    {
+      "message": "<user> получил назначение на должность **редактора** и заработал <value>",
+      "highValue": 50,
+      "lowValue": 25
+    },
+    {
+      "message": "<user> получил назначение на должность **программиста** и заработал <value>",
+      "highValue": 25,
+      "lowValue": 1
+    }
+  ]
+}
