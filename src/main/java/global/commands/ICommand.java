@@ -1,16 +1,11 @@
 package global.commands;
 
-import global.BotMain;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.Channel;
-import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
-import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +61,6 @@ public interface ICommand {
         if (guild == null) return false;
         if (member == null) return false;
 
-        BotMain.logger.debug(String.valueOf(event.getGuild().getIdLong() == member.getIdLong()));
         return event.getGuild().getIdLong() == member.getGuild().getIdLong();
     }
 }

@@ -1,5 +1,6 @@
 package greenlink;
 
+import greenlink.databse.DatabaseConnector;
 import greenlink.economy.EconomyManager;
 import greenlink.economy.EconomyUser;
 import greenlink.economy.UserCooldown;
@@ -15,7 +16,7 @@ public class User implements Observer {
 
     public User(long uuid) {
         this.uuid = uuid;
-        this.userCooldown = new UserCooldown(uuid);
+        this.userCooldown = DatabaseConnector.getInstance().getUserCooldown(uuid);
     }
 
     public long getUuid() {

@@ -11,7 +11,7 @@ public class CancelButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
-        if (!memberCanPerform(event.getMember(), event)) return;
+        if (!memberCanPerformIfVoice(event.getMember(), event)) return;
 
         event.deferEdit().queue();
         event.getMessage().delete().queue();

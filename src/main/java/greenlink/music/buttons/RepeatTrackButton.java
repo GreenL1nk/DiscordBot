@@ -16,7 +16,7 @@ public class RepeatTrackButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
-        if (!memberCanPerform(event.getMember(), event)) return;
+        if (!memberCanPerformIfVoice(event.getMember(), event)) return;
 
         GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
         boolean repeatTrack = musicManager.trackScheduler.repeatTrack;

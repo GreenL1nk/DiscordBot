@@ -1,9 +1,13 @@
 package greenlink.economy;
 
 import global.config.Config;
+import global.utils.Utils;
 import greenlink.User;
-import greenlink.observer.Observer;
-import org.jetbrains.annotations.Nullable;
+import greenlink.economy.leaderboards.LeaderBoardType;
+
+import java.sql.SQLException;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.IntStream;
 
 /**
  * @author t.me/GreenL1nk
@@ -15,14 +19,26 @@ public class EconomyUser extends User {
     private int currentXP;
     private int currentLevel;
     private long firstReceivedCoin;
+    private int earnedFromRobs;
+    private int lostFromRobs;
+    private int successRobs;
+    private int failedRobs;
+    private long voiceTime;
+    private int totalMessages;
 
-    public EconomyUser(long uuid, int cashBalance, int bankBalance, int currentXP, int currentLevel, long firstReceivedCoin) {
+    public EconomyUser(long uuid, int cashBalance, int bankBalance, int currentXP, int currentLevel, long firstReceivedCoin, int earnedFromRobs, int lostFromRobs, int successRobs, int failedRobs, long voiceTime, int totalMessages) {
         super(uuid);
         this.cashBalance = cashBalance;
         this.bankBalance = bankBalance;
         this.currentXP = currentXP;
         this.currentLevel = currentLevel;
         this.firstReceivedCoin = firstReceivedCoin;
+        this.earnedFromRobs = earnedFromRobs;
+        this.lostFromRobs = lostFromRobs;
+        this.successRobs = successRobs;
+        this.failedRobs = failedRobs;
+        this.voiceTime = voiceTime;
+        this.totalMessages = totalMessages;
     }
 
     public int getTotalBalance() {
@@ -37,6 +53,16 @@ public class EconomyUser extends User {
     public void removeCoins(int count) {
         this.cashBalance -= count;
         onEconomyUpdate();
+    }
+
+    public void bankWithdraw(int count) {
+        this.bankBalance -= count;
+        addCoins(count);
+    }
+
+    public void bankDeposit(int count) {
+        this.bankBalance += count;
+        removeCoins(count);
     }
 
     public int getCashBalance() {
@@ -105,8 +131,77 @@ public class EconomyUser extends User {
     }
 
     public void checkLevelUP() {
-        if (currentXP >= calculateExpToNextLevel()) {
+        int expToNextLevel = calculateExpToNextLevel();
+        if (currentXP >= expToNextLevel) {
             addLevel(1);
+            currentXP -= expToNextLevel;
+        }
+    }
+
+    public int getTotalEarnedExp() {
+        return IntStream.range(1, currentLevel)
+                .map(level -> (int) (Config.getInstance().getFirstLevelXP() * Math.pow(Config.getInstance().getXpFormula(), level)))
+                .sum() + currentXP;
+    }
+
+    public int getEarnedFromRobs() {
+        return earnedFromRobs;
+    }
+
+    public int getLostFromRobs() {
+        return lostFromRobs;
+    }
+
+    public int getSuccessRobs() {
+        return successRobs;
+    }
+
+    public int getFailedRobs() {
+        return failedRobs;
+    }
+
+    public long getVoiceTime() {
+        return voiceTime;
+    }
+
+    public int getTotalMessages() {
+        return totalMessages;
+    }
+
+    public void robTry(int count, boolean isRob) {
+        if (isRob) {
+            earnedFromRobs += count;
+            successRobs++;
+        }
+        else {
+            lostFromRobs += count;
+            failedRobs++;
+        }
+    }
+
+    public int getTotalRobs() {
+        return successRobs + failedRobs;
+    }
+
+    public void addMessage() {
+        totalMessages += 1;
+        onEconomyUpdate();
+    }
+
+    public void addVoiceTime(long count) {
+        voiceTime += count;
+        onEconomyUpdate();
+    }
+
+    public String getFormatVoiceTime() {
+        return Utils.formatTime(voiceTime);
+    }
+
+    public int getCurrentTop(LeaderBoardType leaderBoardType) {
+        try {
+            return EconomyManager.getInstance().getUserTop(leaderBoardType).indexOf(this);
+        } catch (SQLException | ExecutionException e) {
+            throw new RuntimeException(e);
         }
     }
 }

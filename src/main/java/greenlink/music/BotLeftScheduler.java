@@ -22,8 +22,7 @@ public class BotLeftScheduler extends ListenerAdapter {
         AudioChannelUnion channel = botVoiceState.getChannel();
         if (channel == null) return;
         if (channel.getMembers().stream().noneMatch(member -> member.getIdLong() != botVoiceState.getIdLong())) {
-            GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
-            musicManager.startScheduler(event.getGuild());
+            PlayerManager.getInstance().startScheduler(event.getGuild());
         }
     }
 }

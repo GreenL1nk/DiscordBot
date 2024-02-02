@@ -1,5 +1,6 @@
 package greenlink.music.commands;
 
+import global.BotMain;
 import global.commands.SlashCommand;
 import greenlink.music.GuildMusicManager;
 import greenlink.music.PlayerManager;
@@ -68,7 +69,8 @@ public class PlayCommand extends SlashCommand {
             link = "ytsearch:" + link;
         }
         MessageChannelUnion channel = event.getChannel();
-        PlayerManager.getInstance().loadAndPlay(channel.asTextChannel(), link, isUrl, event);
+        BotMain.logger.debug(String.valueOf(channel.getType().isMessage()));
+        PlayerManager.getInstance().loadAndPlay(channel.asGuildMessageChannel(), link, isUrl, event);
     }
 
     private boolean isUrl(String input) {

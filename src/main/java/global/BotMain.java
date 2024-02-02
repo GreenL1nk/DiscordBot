@@ -5,14 +5,29 @@ import global.buttons.ButtonManager;
 import global.commands.SlashCommandsListener;
 import global.commands.SlashCommandsManager;
 import global.config.Config;
+import global.modals.ModalListener;
+import global.modals.ModalManager;
 import global.selectmenus.SelectMenuListener;
 import global.selectmenus.SelectMenusManager;
+import greenlink.economy.EconomyManager;
 import greenlink.economy.commands.*;
+import greenlink.economy.leaderboards.LeaderBoardCommand;
+import greenlink.economy.leaderboards.LeaderBoardType;
+import greenlink.economy.leaderboards.buttons.ChoosePageLB;
+import greenlink.economy.leaderboards.buttons.LeaderBoardDelete;
+import greenlink.economy.leaderboards.buttons.NextPage;
+import greenlink.economy.leaderboards.buttons.PrevPage;
+import greenlink.economy.leaderboards.modals.ChoosePageLBModal;
+import greenlink.economy.leaderboards.selectmenus.ChooseBoardTypeMenu;
+import greenlink.economy.listeners.EconomyMessageListener;
+import greenlink.economy.listeners.EconomyVoiceListener;
+import greenlink.mentions.ChooseMentionMenu;
+import greenlink.mentions.MentionManager;
 import greenlink.music.BotLeftScheduler;
 import greenlink.music.MusicBotListener;
 import greenlink.music.buttons.*;
-import greenlink.music.selectmenus.SelectTrackMenu;
 import greenlink.music.commands.PlayCommand;
+import greenlink.music.selectmenus.SelectTrackMenu;
 import greenlink.music.selectmenus.SetTrackMenu;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -20,6 +35,10 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 
 //Created by @GreenL1nk 10.01.2024
 public class BotMain {
@@ -36,18 +55,31 @@ public class BotMain {
                         new SlashCommandsListener(),
                         new ButtonListener(),
                         new SelectMenuListener(),
+                        new ModalListener(),
                         new BotLeftScheduler(),
-                        new MusicBotListener()
+                        new MusicBotListener(),
+                        new EconomyVoiceListener(),
+                        new EconomyMessageListener()
                 )
-                .enableIntents(GatewayIntent.GUILD_VOICE_STATES)
-                .enableCache(CacheFlag.VOICE_STATE)
+                .enableIntents(GatewayIntent.GUILD_VOICE_STATES, GatewayIntent.GUILD_PRESENCES)
+                .enableCache(CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.EMOJI)
                 .build();
         addCommands();
         addButtons();
         addSelectMenus();
+        addModals();
         SlashCommandsManager.getInstance().updateCommands(jda);
 
         instance = this;
+
+        MentionManager.getInstance();
+        Arrays.stream(LeaderBoardType.values()).forEach(leaderBoardType -> {
+            try {
+                EconomyManager.getInstance().getUserTop(leaderBoardType);
+            } catch (SQLException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void addCommands() {
@@ -62,14 +94,17 @@ public class BotMain {
                 new RobCommand(),
                 new DepositCommand(),
                 new WithdrawCommand(),
-                new LeaderBoardCommand()
+                new LeaderBoardCommand(),
+                new PayCommand()
         );
     }
 
     public void addSelectMenus() {
         SelectMenusManager.getInstance().addMenus(
                 new SelectTrackMenu(),
-                new SetTrackMenu()
+                new SetTrackMenu(),
+                new ChooseMentionMenu(),
+                new ChooseBoardTypeMenu()
         );
     }
 
@@ -85,7 +120,17 @@ public class BotMain {
                 new RepeatPlaylistButton(),
                 new ShuffleButton(),
                 new ViewQueueButton(),
-                new CancelButton()
+                new CancelButton(),
+                new NextPage(),
+                new PrevPage(),
+                new LeaderBoardDelete(),
+                new ChoosePageLB()
+        );
+    }
+
+    public void addModals() {
+        ModalManager.getInstance().addModals(
+                new ChoosePageLBModal()
         );
     }
 

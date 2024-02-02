@@ -2,7 +2,6 @@ package global.utils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.sun.source.util.Plugin;
 import global.BotMain;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,16 +18,19 @@ import java.util.concurrent.TimeUnit;
 public class Utils {
 
     public static String formatTime(long timeInMillis) {
-        final long hours = timeInMillis / TimeUnit.HOURS.toMillis(1);
+        final long days = timeInMillis / TimeUnit.DAYS.toMillis(1);
+        final long hours = (timeInMillis % TimeUnit.DAYS.toMillis(1)) / TimeUnit.HOURS.toMillis(1);
         final long minutes = (timeInMillis % TimeUnit.HOURS.toMillis(1)) / TimeUnit.MINUTES.toMillis(1);
         final long seconds = (timeInMillis % TimeUnit.MINUTES.toMillis(1)) / TimeUnit.SECONDS.toMillis(1);
 
-        if (hours > 0) {
-            return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+        if (days > 0) {
+            return String.format("%ddд:%02dч:%02dм:%02dс", days, hours, minutes, seconds);
+        } else if (hours > 0) {
+            return String.format("%02dч:%02dм:%02dс", hours, minutes, seconds);
         } else if (minutes > 0) {
-            return String.format("%02d:%02d", minutes, seconds);
+            return String.format("%02dм:%02dс", minutes, seconds);
         } else {
-            return String.format("%02d", seconds);
+            return String.format("%dс", seconds);
         }
     }
 
@@ -42,13 +44,6 @@ public class Utils {
             BotMain.logger.error("", e);
             return null;
         }
-    }
-
-    public static String capitalizeFirstLetter(String input) {
-        if (input == null || input.isEmpty()) {
-            return input;
-        }
-        return Character.toUpperCase(input.charAt(0)) + input.substring(1);
     }
 
     private static boolean loadJdbcDriver() {

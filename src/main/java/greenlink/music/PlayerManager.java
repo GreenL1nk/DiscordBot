@@ -8,10 +8,11 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import global.BotMain;
+import global.config.Config;
 import global.utils.Utils;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -20,7 +21,6 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
-import net.dv8tion.jda.api.managers.AudioManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +41,7 @@ public class PlayerManager {
     private static PlayerManager instance;
     private final Map<Long, GuildMusicManager> musicManagers;
     private final AudioPlayerManager audioPlayerManager;
+    public HashMap<Long, ScheduledExecutorService> executorService = new HashMap<>();
 
     public PlayerManager() {
         this.musicManagers = new HashMap<>();
@@ -53,27 +54,33 @@ public class PlayerManager {
     public GuildMusicManager getMusicManager(Guild guild) {
         return musicManagers.computeIfAbsent(guild.getIdLong(), (guildId) -> {
             final GuildMusicManager guildMusicManager = new GuildMusicManager(this.audioPlayerManager);
-            guildMusicManager.removeScheduler(guild);
+            removeScheduler(guild);
             guild.getAudioManager().setSendingHandler(guildMusicManager.getSendHandler());
 
             return guildMusicManager;
         });
     }
 
-    public void loadAndPlay(TextChannel channel, String trackUrl, boolean fromUrl, SlashCommandInteractionEvent event) {
+    public void loadAndPlay(GuildMessageChannel channel, String trackUrl, boolean fromUrl, SlashCommandInteractionEvent event) {
         if (event.getMember() == null) return;
         GuildMusicManager musicManager = this.getMusicManager(channel.getGuild());
         TrackScheduler trackScheduler = musicManager.trackScheduler;
-        if (trackScheduler.message == null) {
-            if (fromUrl) {
-                trackScheduler.message = event.getHook();
-                trackScheduler.message.editOriginalComponents(trackScheduler.getSituationalRow()).queue();
-            }
+        if (trackScheduler.message != null && trackScheduler.message.isExpired()) {
+            trackScheduler.message.retrieveOriginal().queue(message -> message.delete().queue());
+            trackScheduler.message = null;
         }
         trackScheduler.chooseTrack.computeIfAbsent(event.getMember().getIdLong(), key -> new ArrayList<>());
         this.audioPlayerManager.loadItemOrdered(musicManager, trackUrl, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
+                if (trackScheduler.message == null) {
+                    event.deferReply().queue();
+                    trackScheduler.message = event.getHook();
+                    trackScheduler.message.editOriginalComponents(trackScheduler.getSituationalRow()).queue();
+                }
+                else {
+                    event.deferReply().queue(m -> m.deleteOriginal().queue());
+                }
                 trackScheduler.queue(track);
             }
 
@@ -81,6 +88,14 @@ public class PlayerManager {
             public void playlistLoaded(AudioPlaylist playlist) {
                 List<AudioTrack> tracks = playlist.getTracks();
                 if (fromUrl) {
+                    if (trackScheduler.message == null) {
+                        event.deferReply().queue();
+                        trackScheduler.message = event.getHook();
+                        trackScheduler.message.editOriginalComponents(trackScheduler.getSituationalRow()).queue();
+                    }
+                    else {
+                        event.deferReply().queue(m -> m.deleteOriginal().queue());
+                    }
                     tracks.forEach(trackScheduler::queue);
                 }
                 else {
@@ -105,8 +120,6 @@ public class PlayerManager {
                                         Button.of(ButtonStyle.DANGER, "cancelselecttrack", "Отменить", Emoji.fromUnicode("🛑"))
                                 ).setEphemeral(false).queue();
                     }
-
-//                    channel.sendMessageComponents(actionRow).queue();
                 }
             }
 
@@ -120,6 +133,36 @@ public class PlayerManager {
 
             }
         });
+    }
+
+    public void startScheduler(Guild guild) {
+        ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
+        executorService.put(guild.getIdLong(), service);
+        service.schedule(() -> {
+            kickBot(guild);
+            BotMain.logger.debug("Бот отключился по истечению таймаута из " + guild.getIdLong());
+        }, Config.getInstance().getBotVoiceTimeout(), TimeUnit.MINUTES);
+    }
+
+    public void removeScheduler(Guild guild) {
+        ScheduledExecutorService service = executorService.get(guild.getIdLong());
+        if (service == null) return;
+        service.shutdownNow();
+        executorService.remove(guild.getIdLong());
+        BotMain.logger.debug("У гильдии " + guild.getIdLong() + " были отключены executro'ы");
+    }
+
+    public void kickBot(Guild guild) {
+        long idLong = guild.getIdLong();
+        if (musicManagers.get(idLong).trackScheduler != null) musicManagers.get(idLong).trackScheduler.stop();
+        GuildVoiceState botVoiceState = guild.getSelfMember().getVoiceState();
+        if (botVoiceState == null) return;
+        if (!botVoiceState.inAudioChannel()) return;
+        AudioChannelUnion channel = botVoiceState.getChannel();
+        if (channel == null) return;
+        guild.getAudioManager().closeAudioConnection();
+        musicManagers.remove(idLong);
+        executorService.remove(guild.getIdLong());
     }
 
     public static PlayerManager getInstance() {

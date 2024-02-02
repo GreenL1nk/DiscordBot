@@ -4,6 +4,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackState;
 import global.utils.Utils;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -38,7 +39,6 @@ public class TrackScheduler extends AudioEventAdapter {
     public InteractionHook message;
     public AudioTrack currentTrack;
     public HashMap<Long, ArrayList<AudioTrack>> chooseTrack = new HashMap<>();
-    public boolean needAddButtons = true;
     private Member requester;
 
     public TrackScheduler(AudioPlayer audioPlayer) {
@@ -48,13 +48,14 @@ public class TrackScheduler extends AudioEventAdapter {
     }
 
     public void queue(AudioTrack track) {
-        if (!audioPlayer.startTrack(track, true)) {
-            this.queue.offer(track);
+        if (!audioPlayer.startTrack(track.makeClone(), true)) {
+            this.queue.offer(track.makeClone());
             onQueueUpdate();
         }
     }
 
     public void nextTrack(boolean addToHistory) {
+        if (queue.isEmpty()) updateNoMessage();
         if (addToHistory) saveHistory = true;
         this.audioPlayer.startTrack(this.queue.poll(), false);
         if (this.queue.isEmpty() && !this.history.isEmpty() && repeatPlayList) {
@@ -67,7 +68,7 @@ public class TrackScheduler extends AudioEventAdapter {
         AudioTrack previous = this.history.pollLast();
         if (previous == null) return;
         saveHistory = false;
-        this.queue.offerFirst(currentTrack.makeClone());
+        if (currentTrack.getState() != AudioTrackState.FINISHED) this.queue.offerFirst(currentTrack.makeClone());
         this.queue.offerFirst(previous.makeClone());
         nextTrack(false);
     }
@@ -121,7 +122,14 @@ public class TrackScheduler extends AudioEventAdapter {
     }
 
     public void updateMessage() {
+        if (message == null) return;
         EmbedBuilder embedBuilder = getEmbedBuilder(currentTrack);
+        message.editOriginalEmbeds(embedBuilder.build()).setComponents(getSituationalRow()).queue();
+    }
+
+    public void updateNoMessage() {
+        if (message == null) return;
+        EmbedBuilder embedBuilder = embedBuilderNoTracks();
         message.editOriginalEmbeds(embedBuilder.build()).setComponents(getSituationalRow()).queue();
     }
 
@@ -149,6 +157,14 @@ public class TrackScheduler extends AudioEventAdapter {
         return embedBuilder;
     }
 
+    @NotNull
+    private EmbedBuilder embedBuilderNoTracks() {
+        EmbedBuilder embedBuilder = new EmbedBuilder();
+        embedBuilder.setColor(Color.decode("#e32a2a"));
+        embedBuilder.addField("💽 " + "Сейчас ничего не играет | Громкость - " + audioPlayer.getVolume(), "", false);
+        return embedBuilder;
+    }
+
     @Nullable
     public AudioTrack getNextTrack() {
         List<AudioTrack> tracks = new ArrayList<>(queue.stream().toList());
@@ -162,9 +178,8 @@ public class TrackScheduler extends AudioEventAdapter {
     }
 
     public void deleteMessage() {
-        message.retrieveOriginal().queue(m -> m.delete().queue());
+        message.deleteOriginal().queue();
         message = null;
-        needAddButtons = true;
     }
 
     public void stop() {
@@ -199,12 +214,13 @@ public class TrackScheduler extends AudioEventAdapter {
             buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Возобновить", Emoji.fromUnicode("▶️")));
         }
         else {
-            buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Пауза", Emoji.fromUnicode("⏸️")));
+            if (queue.isEmpty() && audioPlayer.getPlayingTrack() == null) buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Пауза", Emoji.fromUnicode("⏸️")).asDisabled());
+            else buttons.add(Button.of(ButtonStyle.SECONDARY, "pausetrack", "Пауза", Emoji.fromUnicode("⏸️")));
         }
 
-        if (audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")).asDisabled());
+        if (audioPlayer.isPaused() || (queue.isEmpty() && audioPlayer.getPlayingTrack() == null)) buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")).asDisabled());
         else buttons.add(Button.of(ButtonStyle.SECONDARY, "repeatrack", "Включить цикл трека", Emoji.fromUnicode("🔂")).asEnabled());
-        if (audioPlayer.isPaused()) buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")).asDisabled());
+        if (audioPlayer.isPaused() || (queue.isEmpty() && audioPlayer.getPlayingTrack() == null)) buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")).asDisabled());
         else buttons.add(Button.of(ButtonStyle.SECONDARY, "repeaplaylist", "Включить цикл очереди", Emoji.fromUnicode("🔁")).asEnabled());
 
         if (this.queue.isEmpty() || this.queue.size() == 1) buttons.add(Button.of(ButtonStyle.SECONDARY, "shufflestracks", "Перемешать", Emoji.fromUnicode("🔀")).asDisabled());

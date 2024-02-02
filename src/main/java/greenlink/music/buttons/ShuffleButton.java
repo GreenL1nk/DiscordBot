@@ -17,7 +17,7 @@ public class ShuffleButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
-        if (!memberCanPerform(event.getMember(), event)) return;
+        if (!memberCanPerformIfVoice(event.getMember(), event)) return;
 
         GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
         ArrayList<AudioTrack> trackList = new ArrayList<>(musicManager.trackScheduler.queue);

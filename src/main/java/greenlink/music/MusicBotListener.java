@@ -14,13 +14,7 @@ public class MusicBotListener extends ListenerAdapter {
     @Override
     public void onGuildVoiceUpdate(@NotNull GuildVoiceUpdateEvent event) {
         if (event.getEntity().getIdLong() == BotMain.getInstance().getJda().getSelfUser().getIdLong()) {
-            GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
-            musicManager.trackScheduler.stop();
-            musicManager.audioPlayer = null;
-            musicManager.trackScheduler = null;
-            musicManager.sendHandler = null;
-            musicManager.executorService.shutdownNow();
-            musicManager.executorService = null;
+            PlayerManager.getInstance().executorService.remove(event.getGuild().getIdLong());
         }
     }
 }

@@ -13,16 +13,15 @@ public class SelectTrackMenu implements ISelectMenu {
     @Override
     public void onSelectMenuInteraction(StringSelectInteractionEvent event) {
         if (event.getGuild() == null) return;
-        if (!memberCanPerform(event.getMember(), event)) return;
+        if (!memberCanPerformIfVoice(event.getMember(), event)) return;
 
         GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
         String trackID = event.getValues().get(0);
         event.deferEdit().queue();
 
-        if (musicManager.trackScheduler.needAddButtons) {
+        if (musicManager.trackScheduler.message == null) {
             musicManager.trackScheduler.message = event.getHook();
             musicManager.trackScheduler.message.editOriginalComponents(musicManager.trackScheduler.getSituationalRow()).queue();
-            musicManager.trackScheduler.needAddButtons = false;
         }
         else {
             event.getMessage().delete().queue();

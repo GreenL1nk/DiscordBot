@@ -2,7 +2,7 @@ package greenlink.music.buttons;
 
 import global.buttons.IButton;
 import greenlink.music.PlayerManager;
-import greenlink.music.GuildMusicManager;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 /**
@@ -12,12 +12,11 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 public class StopButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
-        if (event.getGuild() == null) return;
-        if (!memberCanPerform(event.getMember(), event)) return;
+        Guild guild = event.getGuild();
+        if (guild == null) return;
+        if (!memberCanPerformIfVoice(event.getMember(), event)) return;
 
-
-        GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
-        musicManager.trackScheduler.stop();
+        PlayerManager.getInstance().kickBot(guild);
     }
 
     @Override

@@ -7,21 +7,43 @@
   "mySQLDbname": "",
   "mySQLPassword": "",
   "botVoiceTimeout": 15,
-  "coinIcon": ":coin:",
-  "cashIcon": ":dollar:",
-  "bankIcon": ":credit_card:",
-  "totalCoinsIcon": ":moneybag:",
-  "infoIcon": ":receipt:",
-  "levelIcon": ":star:",
-  "jobIcon": ":baggage_claim:",
   "firstLevelXP": 10,
   "xpFormula": 1.2,
-  "workCooldown": 30,
-  "timelyCooldown": 20,
-  "dailyCooldown": 1440,
-  "weeklyCooldown": 10080,
-  "monthlyCooldown": 44640,
-  "robCooldown": 10,
+  "work": {
+    "cooldown": 30,
+    "icon": ":baggage_claim:"
+  },
+  "timely": {
+    "cooldown": 20,
+    "minValue": 30,
+    "maxValue": 170,
+    "icon": ":ninja:"
+  },
+  "daily": {
+    "cooldown": 1440,
+    "minValue": 200,
+    "maxValue": 300,
+    "icon": ":ninja:"
+  },
+  "weekly": {
+    "cooldown": 10080,
+    "minValue": 300,
+    "maxValue": 400,
+    "icon": ":ninja:"
+  },
+  "monthly": {
+    "cooldown": 44640,
+    "minValue": 400,
+    "maxValue": 500,
+    "icon": ":ninja:"
+  },
+  "rob": {
+    "cooldown": 100,
+    "failChance": 70,
+    "minValue": 1,
+    "maxValue": 100,
+    "icon": ":ninja:"
+  },
   "jobs": [
     {
       "message": "<user> получил назначение на должность **геолога** и заработал <value>",
@@ -38,5 +60,18 @@
       "highValue": 25,
       "lowValue": 1
     }
-  ]
+  ],
+  "icon": {
+    "coinIcon": ":coin:",
+    "cashIcon": ":dollar:",
+    "bankIcon": ":credit_card:",
+    "totalCoinsIcon": ":moneybag:",
+    "infoIcon": ":receipt:",
+    "levelIcon": ":star:",
+    "robBoardIcon": "\uD83D\uDD75\uD83C\uDFFB\u200D♂\uFE0F",
+    "voiceBoardIcon": "\uD83C\uDFA4",
+    "levelBoardIcon": "\uD83D\uDCC8",
+    "messageBoardIcon": "\uD83D\uDCE8",
+    "balanceBoardIcon": "\uD83D\uDCB0"
+  }
 }

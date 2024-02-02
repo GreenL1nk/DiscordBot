@@ -3,20 +3,30 @@ package greenlink.economy.commands;
 import global.commands.SlashCommand;
 import global.commands.SlashCommandsManager;
 import global.config.Config;
-import global.utils.Utils;
 import greenlink.economy.EconomyManager;
 import greenlink.economy.EconomyUser;
+import greenlink.economy.leaderboards.LeaderBoardType;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.utils.FileUpload;
 import org.jetbrains.annotations.NotNull;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URL;
 import java.time.Instant;
+import java.util.ArrayList;
 
 /**
  * @author t.me/GreenL1nk
@@ -33,9 +43,11 @@ public class ProfileCommand extends SlashCommand {
 
         EconomyUser economyUser;
         MessageEmbed messageEmbed;
+
         if (event.getOptions().isEmpty()) {
             economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
-            messageEmbed = getEmbedBuilder(member, economyUser);
+            messageEmbed = getEmbedBuilder(member, economyUser, false);
+            event.deferReply().addEmbeds(messageEmbed).queue();
         }
         else {
             Member argMember = event.getOptionsByType(OptionType.USER).get(0).getAsMember();
@@ -43,23 +55,43 @@ public class ProfileCommand extends SlashCommand {
                 event.deferReply(true).addContent("Нет такого пользователя").queue();
                 return;
             }
+
+            event.deferReply().queue();
+            InteractionHook hook = event.getHook();
+
             economyUser = EconomyManager.getInstance().getEconomyUser(argMember.getIdLong());
-            messageEmbed = getEmbedBuilder(argMember, economyUser);
+            messageEmbed = getEmbedBuilder(argMember, economyUser,true);
+
+            byte[] imageData;
+            try {
+                BufferedImage bufferedImage = generateRankCard(
+                        argMember.getEffectiveName(), argMember.getEffectiveAvatarUrl(),
+                        argMember.getOnlineStatus(), economyUser.getCurrentLevel(),
+                        economyUser.getCurrentXP(), economyUser.calculateExpToNextLevel(), economyUser.getCurrentTop(LeaderBoardType.LEVEL));
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(bufferedImage, "png", baos);
+                imageData = baos.toByteArray();
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            hook.sendFiles(FileUpload.fromData(imageData, "profile.png")).addEmbeds(messageEmbed).queue();
         }
         economyUser.addCoins(1);
         economyUser.addXp(1);
-        event.deferReply().addEmbeds(messageEmbed).queue();
+
+
     }
 
     @NotNull
-    private MessageEmbed getEmbedBuilder(Member member, EconomyUser economyUser) {
+    private MessageEmbed getEmbedBuilder(Member member, EconomyUser economyUser, boolean anotherMember) {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setColor(Color.decode("#a48ea2"));
         embedBuilder.setThumbnail(member.getUser().getAvatarUrl());
 
         embedBuilder.addField(
                 "",
-                String.format("**" + Config.getInstance().getInfoIcon() + "Баланс пользователя **" + "<@%d>", economyUser.getUuid()),
+                String.format("**" + Config.getInstance().getIcon().getInfoIcon() + "Баланс пользователя **" + "<@%d>", economyUser.getUuid()),
                 false
                 );
 
@@ -70,9 +102,9 @@ public class ProfileCommand extends SlashCommand {
                                 %s**Наличные**: %d %s
                                 %s**В банке**: %d %s
                                 %s**Общий баланс**: %d %s""",
-                        Config.getInstance().getCashIcon(), economyUser.getCashBalance(), Config.getInstance().getCoinIcon(),
-                        Config.getInstance().getBankIcon(), economyUser.getBankBalance(), Config.getInstance().getCoinIcon(),
-                        Config.getInstance().getTotalCoinsIcon(), economyUser.getTotalBalance(), Config.getInstance().getCoinIcon()
+                        Config.getInstance().getIcon().getCashIcon(), economyUser.getCashBalance(), Config.getInstance().getIcon().getCoinIcon(),
+                        Config.getInstance().getIcon().getBankIcon(), economyUser.getBankBalance(), Config.getInstance().getIcon().getCoinIcon(),
+                        Config.getInstance().getIcon().getTotalCoinsIcon(), economyUser.getTotalBalance(), Config.getInstance().getIcon().getCoinIcon()
                 ),
                 false
         );
@@ -81,61 +113,64 @@ public class ProfileCommand extends SlashCommand {
                 "",
                 String.format(
                         "**%sУровень:** %d `[%d/%d]`",
-                        Config.getInstance().getLevelIcon(), economyUser.getCurrentLevel(),
+                        Config.getInstance().getIcon().getLevelIcon(), economyUser.getCurrentLevel(),
                         economyUser.getCurrentXP(), economyUser.calculateExpToNextLevel()
                 ),
                 false
         );
 
-        Long workId = SlashCommandsManager.getInstance().getCommandByName("work");
-        Long timelyId = SlashCommandsManager.getInstance().getCommandByName("timely");
-        Long dailyId = SlashCommandsManager.getInstance().getCommandByName("daily");
-        Long weeklyId = SlashCommandsManager.getInstance().getCommandByName("weekly");
-        Long monthlyId = SlashCommandsManager.getInstance().getCommandByName("monthly");
-        Long robId = SlashCommandsManager.getInstance().getCommandByName("rob");
+        if (!anotherMember) {
+            Long workId = SlashCommandsManager.getInstance().getCommandIdByName("work");
+            Long timelyId = SlashCommandsManager.getInstance().getCommandIdByName("timely");
+            Long dailyId = SlashCommandsManager.getInstance().getCommandIdByName("daily");
+            Long weeklyId = SlashCommandsManager.getInstance().getCommandIdByName("weekly");
+            Long monthlyId = SlashCommandsManager.getInstance().getCommandIdByName("monthly");
+            Long robId = SlashCommandsManager.getInstance().getCommandIdByName("rob");
 
-        String work = economyUser.getUserCooldown().canWork() ?
-                String.format("* </work:%d> - доступна", workId) :
-                String.format("* </work:%d> - будет доступна через `%s`",
-                        workId, Utils.formatTime(System.currentTimeMillis() - economyUser.getUserCooldown().getWorkLastTime()));
+            ArrayList<String> availableCommands = new ArrayList<>();
 
-        String timely = economyUser.getUserCooldown().canTimely() ?
-                String.format("* </timely:%d> - доступна", timelyId) :
-                String.format("* </timely:%d> - будет доступна через `%s`",
-                        timelyId, Utils.formatTime(System.currentTimeMillis() - economyUser.getUserCooldown().getTimelyLastTime()));
+            String work = economyUser.getUserCooldown().canWork() ?
+                    String.format("* </work:%d> - доступна", workId) : null;
+            if (work != null) availableCommands.add(work);
 
-        String daily = economyUser.getUserCooldown().canDaily() ?
-                String.format("* </daily:%d> - доступна", dailyId) :
-                String.format("* </daily:%d> - будет доступна через `%s`",
-                        dailyId, Utils.formatTime(System.currentTimeMillis() - economyUser.getUserCooldown().getDailyLastTime()));
+            String timely = economyUser.getUserCooldown().canTimely() ?
+                    String.format("* </timely:%d> - доступна", timelyId) : null;
+            if (timely != null) availableCommands.add(timely);
 
-        String weekly = economyUser.getUserCooldown().canWeekly() ?
-                String.format("* </weekly:%d> - доступна", weeklyId) :
-                String.format("* </weekly:%d> - будет доступна через `%s`",
-                        weeklyId, Utils.formatTime(System.currentTimeMillis() - economyUser.getUserCooldown().getWeeklyLastTime()));
+            String daily = economyUser.getUserCooldown().canDaily() ?
+                    String.format("* </daily:%d> - доступна", dailyId) : null;
+            if (daily != null) availableCommands.add(daily);
 
-        String monthly = economyUser.getUserCooldown().canMonthly() ?
-                String.format("* </monthly:%d> - доступна", monthlyId) :
-                String.format("* </monthly:%d> - будет доступна через `%s`",
-                        monthlyId, Utils.formatTime(System.currentTimeMillis() - economyUser.getUserCooldown().getMonthlyLastTime()));
+            String weekly = economyUser.getUserCooldown().canWeekly() ?
+                    String.format("* </weekly:%d> - доступна", weeklyId) : null;
+            if (weekly != null) availableCommands.add(weekly);
 
-        String rob = economyUser.getUserCooldown().canRob() ?
-                String.format("* </rob:%d> - доступна", robId) :
-                String.format("* </rob:%d> - будет доступна через `%s`",
-                        robId, Utils.formatTime(System.currentTimeMillis() - economyUser.getUserCooldown().getRobLastTime()));
+            String monthly = economyUser.getUserCooldown().canMonthly() ?
+                    String.format("* </monthly:%d> - доступна", monthlyId) : null;
+            if (monthly != null) availableCommands.add(monthly);
 
-        embedBuilder.addField(
-          "Команды",
-          work + "\n" +
-                  timely + "\n" +
-                  daily + "\n" +
-                  weekly + "\n" +
-                  monthly + "\n" +
-                  rob + "\n",
-          false
-        );
+            String rob = economyUser.getUserCooldown().canRob() ?
+                    String.format("* </rob:%d> - доступна", robId) : null;
+            if (rob != null) availableCommands.add(rob);
+
+
+            StringBuilder commandsBuilder = new StringBuilder();
+            for (String command : availableCommands) {
+                commandsBuilder.append(command).append("\n");
+            }
+
+            if (!availableCommands.isEmpty()) {
+                embedBuilder.addField(
+                        "Команды",
+                        commandsBuilder.toString(),
+                        false
+                );
+            }
+        }
+        else embedBuilder.setImage("attachment://profile.png");
 
         embedBuilder.setTimestamp(Instant.now());
+
         return embedBuilder.build();
     }
 
@@ -154,4 +189,88 @@ public class ProfileCommand extends SlashCommand {
         return "Показывает профиль пользователя";
     }
 
+    public BufferedImage generateRankCard(String username, String avatarUrl, OnlineStatus onlineStatus, int level, int currentExp, int maxExp, int top) throws IOException {
+        BufferedImage image = new BufferedImage(934, 282, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+
+        // Включаем антиалиасинг
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        g.setColor(new Color(0, 0, 0, 0));
+        g.fillRect(0, 0, image.getWidth(), image.getHeight());
+
+        BufferedImage avatar = ImageIO.read(new URL(avatarUrl));
+
+        BufferedImage avatarMask = new BufferedImage(avatar.getWidth(), avatar.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskGraphics = avatarMask.createGraphics();
+        maskGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        maskGraphics.setColor(Color.WHITE);
+        maskGraphics.fillOval(0, 0, avatar.getWidth(), avatar.getHeight());
+        maskGraphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_IN));
+        maskGraphics.drawImage(avatar, 0, 0, null);
+        maskGraphics.dispose();
+
+        int avatarSize = 100;
+        int avatarX = 50;
+        int avatarY = (image.getHeight() - avatarSize) / 2;
+
+        // Отображаем статус пользователя вокруг аватарки
+        Color statusColor = switch (onlineStatus) {
+            case ONLINE -> Color.decode("#43b581");
+            case IDLE -> Color.decode("#faa61a");
+            case DO_NOT_DISTURB -> Color.decode("#f04747");
+            default -> Color.decode("#747f8d");
+        };
+        g.setColor(statusColor);
+
+        int statusSize = avatarSize + 6; // Дополнительный размер для отступа
+        int statusX = avatarX - (statusSize - avatarSize) / 2; // Рассчитываем новое положение круга статуса по X
+        int statusY = avatarY - (statusSize - avatarSize) / 2; // Рассчитываем новое положение круга статуса по Y
+        g.fillOval(statusX, statusY, statusSize, statusSize);
+
+        // Задаем цвет текста и шрифт
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Calibri", Font.BOLD, 30)); // Используем шрифт Calibri
+
+        // Рисуем ник пользователя
+        g.drawString(username, avatarX + avatarSize + 20, avatarY + 35);
+
+
+        FontMetrics fm = g.getFontMetrics();
+        // Рисуем текст прогресса уровня
+
+        // Рисуем прогресс в заполнителе
+        int levelBarX = avatarX + avatarSize + 20;
+        int levelBarY = avatarY + 100;
+        int levelBarWidth = 640;
+        int levelBarHeight = 25; // Уменьшили высоту шкалы
+        int progressWidthValue = (int) ((double) currentExp / maxExp * levelBarWidth);
+        RoundRectangle2D levelBar = new RoundRectangle2D.Float(levelBarX, levelBarY, levelBarWidth, levelBarHeight, 20, 20);
+        g.setColor(Color.decode("#474b4e")); // Задаем цвет шкалы
+        g.fill(levelBar);
+
+        // Рисуем прогресс
+        g.setColor(Color.WHITE); // Задаем цвет прогресса
+        g.fillRoundRect(levelBarX, levelBarY, progressWidthValue, levelBarHeight, 20, 20); // Заполняем прогресс
+
+        // Рисуем "Level 3" над концом полоски прогресса
+        String levelMessage = "Ур. " + level + " Ранг #" + top;
+        int levelMessageY = levelBarY - 15; // Сдвигаем текст чуть выше конца полоски прогресса
+
+        // Аватарка
+        g.drawImage(avatarMask, avatarX, avatarY, avatarSize, avatarSize, null);
+
+        g.drawString(levelMessage, levelBarX, levelMessageY);
+
+        String progressText = currentExp + "/" + maxExp;
+        // Перемещаем progressText над концом полоски прогресса
+        int progressWidth = fm.stringWidth(progressText);
+        int progressTextX = levelBarX + levelBarWidth - progressWidth;
+        int progressTextY = levelBarY - 10;
+        g.drawString(progressText, progressTextX, progressTextY);
+
+        g.dispose();
+
+        return image;
+    }
 }

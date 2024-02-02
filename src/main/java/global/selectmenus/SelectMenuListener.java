@@ -13,7 +13,12 @@ public class SelectMenuListener extends ListenerAdapter {
     @Override
     public void onStringSelectInteraction(@NotNull StringSelectInteractionEvent event) {
         SelectMenusManager.getInstance().getMenus().stream()
-                .filter(menu -> menu.getMenuID().equals(event.getComponentId()))
+                .filter(menu -> {
+                    if (menu instanceof ArgSelectMenu) {
+                        return event.getComponentId().startsWith(menu.getMenuID());
+                    }
+                    return menu.getMenuID().equals(event.getComponentId());
+                })
                 .findFirst()
                 .ifPresent((menu) -> menu.onSelectMenuInteraction(event));
     }

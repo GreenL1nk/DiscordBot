@@ -1,15 +1,12 @@
 package global.commands;
 
-import global.BotMain;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -53,9 +50,14 @@ public class SlashCommandsManager {
     }
 
     @Nullable
-    public Long getCommandByName(String name) {
+    public Long getCommandIdByName(String name) {
         Command command = this.guildCommandsMap.stream().filter(c -> c.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
         if (command == null) return null;
         return command.getIdLong();
+    }
+
+    @Nullable
+    public ICommand getCommandByName(String name) {
+        return commandMap.stream().filter(command -> command.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 }

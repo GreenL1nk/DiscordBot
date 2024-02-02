@@ -1,12 +1,14 @@
 package greenlink.economy.commands;
 
-import global.BotMain;
 import global.commands.SlashCommand;
 import global.config.Config;
+import global.config.configs.ConfigImpl;
+import global.config.configs.WorkConfig;
 import greenlink.economy.EconomyManager;
 import greenlink.economy.EconomyUser;
 import greenlink.economy.jobs.Job;
 import greenlink.economy.jobs.JobsManager;
+import greenlink.mentions.Mentionable;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -20,7 +22,9 @@ import java.time.Instant;
  * @author t.me/GreenL1nk
  * 23.01.2024
  */
-public class WorkCommand extends SlashCommand {
+public class WorkCommand extends SlashCommand implements Mentionable {
+
+    WorkConfig config = (WorkConfig) config();
     @Override
     public void execute(SlashCommandInteractionEvent event) {
         Member member = event.getMember();
@@ -30,7 +34,7 @@ public class WorkCommand extends SlashCommand {
 
         EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
         if (!economyUser.getUserCooldown().canWork()) {
-            event.deferReply(true).setContent(String.format("**Будет доступна:** <t:<%d>:R>", economyUser.getUserCooldown().getWorkEpochTimeCD())).queue();
+            event.deferReply(true).setContent(String.format("**Будет доступна:** <t:%d:R>", economyUser.getUserCooldown().getWorkEpochTimeCD())).queue();
             return;
         }
 
@@ -40,13 +44,11 @@ public class WorkCommand extends SlashCommand {
 
         economyUser.addCoins(value);
 
-        //TODO сейв времени в бд
-
         String message = randomJob.message()
                 .replaceAll("<user>", String.format("<@%d>", member.getIdLong()))
-                .replaceAll("<value>", String.format("%d%s", value, Config.getInstance().getCoinIcon()));
+                .replaceAll("<value>", String.format("%d%s", value, Config.getInstance().getIcon().getCoinIcon()));
 
-        event.deferReply().addEmbeds(getEmbedBuilder(member, economyUser, message)).queue();
+        event.deferReply().addEmbeds(getEmbedBuilder(member, economyUser, message)).addComponents(getActionRow(getName())).queue();
     }
 
     @NotNull
@@ -56,7 +58,7 @@ public class WorkCommand extends SlashCommand {
         embedBuilder.setThumbnail(member.getUser().getAvatarUrl());
 
         embedBuilder.addField(
-                Config.getInstance().getJobIcon() + " **Работа**",
+                config.getIcon() + " **Работа**",
                 message,
                 false
         );
@@ -79,5 +81,10 @@ public class WorkCommand extends SlashCommand {
     @Override
     public String getDescription() {
         return "Выйти на работу";
+    }
+
+    @Override
+    public ConfigImpl config() {
+        return Config.getInstance().getWork();
     }
 }

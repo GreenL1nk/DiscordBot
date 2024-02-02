@@ -1,21 +1,34 @@
 package greenlink.databse;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import global.BotMain;
+import global.commands.ICommand;
+import global.commands.SlashCommandsManager;
 import global.config.Config;
-import global.utils.Utils;
 import greenlink.User;
 import greenlink.economy.EconomyUser;
+import greenlink.economy.UserCooldown;
+import greenlink.mentions.MentionObject;
+import greenlink.mentions.MentionType;
+import greenlink.mentions.Mentionable;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.Channel;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.sql.*;
-import java.util.concurrent.TimeUnit;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class DatabaseConnector {
     private String url;
     private String user;
     private String password;
     private Connection connection;
-    private boolean useSQLdDB;
+    public boolean useSQLdDB;
+    private HikariDataSource dataSource;
     private static DatabaseConnector instance;
     private long lastTimeConnect;
 
@@ -27,82 +40,137 @@ public class DatabaseConnector {
     }
 
     private DatabaseConnector() {
-        lastTimeConnect = 0;
         try {
             Config config = Config.getInstance();
-            boolean isEnable = config.isMySQLEnable();
-            if (isEnable) {
-                String host = config.getMySQLHost();
-                String port = config.getMySQLPort();
-                user = config.getMySQLUser();
-                String dbname = config.getMySQLDbname();
-                password = config.getMySQLPassword();
-                url = "jdbc:mysql://" + host + ":" + port + "/" + dbname;
+            useSQLdDB = config.isMySQLEnable();
+            if (useSQLdDB) {
+                HikariConfig hikariConfig = getHikariConfig(config);
 
-                connection = null;
-                if (Utils.loadMysqlDriver()) {
-                    connection = getConnection();
-                    BotMain.logger.info("Using MySQL");
-                    useSQLdDB = true;
+                dataSource = new HikariDataSource(hikariConfig);
+
+                try (Connection conn = getConnection();
+                     PreparedStatement statement = conn.prepareStatement(
+                             "CREATE TABLE IF NOT EXISTS `users_economy` ( " +
+                                     "`uuid` BIGINT NOT NULL, " +
+                                     "`coins` INT NULL DEFAULT 0, " +
+                                     "`bank` INT NULL DEFAULT 0, " +
+                                     "`xp` INT NULL DEFAULT 0, " +
+                                     "`level` INT NULL DEFAULT 0, " +
+                                     "`first_received_coin` BIGINT NULL DEFAULT NULL, " +
+                                     "PRIMARY KEY (`uuid`) ) " +
+                                     "COLLATE='utf8_unicode_ci' ;");
+
+                     PreparedStatement statement2 = conn.prepareStatement(
+                             "CREATE TABLE IF NOT EXISTS `users_cooldown` ( " +
+                                     "`uuid` BIGINT NOT NULL, " +
+                                     "`work` BIGINT NULL DEFAULT 0, " +
+                                     "`timely` BIGINT NULL DEFAULT 0, " +
+                                     "`daily` BIGINT NULL DEFAULT 0, " +
+                                     "`weekly` BIGINT NULL DEFAULT 0, " +
+                                     "`monthly` BIGINT NULL DEFAULT 0, " +
+                                     "`rob` BIGINT NULL DEFAULT 0, " +
+                                     "PRIMARY KEY (`uuid`) ) " +
+                                     "COLLATE='utf8_unicode_ci' ;");
+
+                     PreparedStatement statement3 = conn.prepareStatement(
+                             "CREATE TABLE IF NOT EXISTS `command_mention` ( " +
+                                     "`uuid` BIGINT NOT NULL, " +
+                                     "`work` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`timely` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`daily` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`weekly` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`monthly` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`rob` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "PRIMARY KEY (`uuid`) ) " +
+                                     "COLLATE='utf8_unicode_ci' ;");
+
+                     PreparedStatement statement4 = conn.prepareStatement(
+                             "CREATE TABLE IF NOT EXISTS `user_stats` ( " +
+                                     "`uuid` BIGINT NOT NULL, " +
+                                     "`earned_rob` INT NULL DEFAULT 0, " +
+                                     "`lost_rob` INT NULL DEFAULT 0, " +
+                                     "`voice_time` INT NULL DEFAULT 0, " +
+                                     "`total_message` LONG NULL DEFAULT 0, " +
+                                     "`success_rob` INT NULL DEFAULT 0, " +
+                                     "`fail_rob` INT NULL DEFAULT 0, " +
+                                     "PRIMARY KEY (`uuid`) ) " +
+                                     "COLLATE='utf8_unicode_ci' ;");
+                )
+                {
+
+
+                    statement.executeUpdate();
+                    statement2.executeUpdate();
+                    statement3.executeUpdate();
+                    statement4.executeUpdate();
                 }
-            } else {
-                useSQLdDB = false;
             }
-        } catch (Exception e) {
-            BotMain.logger.error("", e);
-        }
-
-        if (!useSQLdDB) return;
-        try (Connection conn = getConnection();
-             Statement statement = conn.createStatement()) {
-            statement.executeUpdate("""
-                    CREATE TABLE IF NOT EXISTS `users_economy` (
-                    `uuid` BIGINT NOT NULL,
-                    `coins` INT NULL DEFAULT 0,
-                    `bank` INT NULL DEFAULT 0,
-                    `xp` INT NULL DEFAULT 0,
-                    `level` INT NULL DEFAULT 0,
-                    `first_received_coin` BIGINT NULL DEFAULT NULL,
-                    PRIMARY KEY (`uuid`)
-                    )
-                    COLLATE='utf8_unicode_ci'
-                    ;""");
-
-            statement.executeUpdate("""
-                    CREATE TABLE IF NOT EXISTS `users_cooldown` (
-                    `uuid` BIGINT NOT NULL,
-                    `work` BIGINT NULL DEFAULT 0,
-                    `timely` BIGINT NULL DEFAULT 0,
-                    `daily` BIGINT NULL DEFAULT 0,
-                    `weekly` BIGINT NULL DEFAULT 0,
-                    `monthly` BIGINT NULL DEFAULT 0,
-                    `rob` BIGINT NULL DEFAULT 0,
-                    PRIMARY KEY (`uuid`)
-                    )
-                    COLLATE='utf8_unicode_ci'
-                    ;""");
         } catch (Exception e) {
             BotMain.logger.error("", e);
         }
     }
 
+    private boolean triggerExists(Connection conn, String triggerName) throws SQLException {
+        String query = "SELECT trigger_name FROM information_schema.triggers WHERE trigger_schema = ? AND trigger_name = ?";
+
+        try (PreparedStatement statement = conn.prepareStatement(query)) {
+            statement.setString(1, conn.getCatalog()); // Используем текущую базу данных
+            statement.setString(2, triggerName);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next(); // Возвращает true, если триггер существует
+            }
+        }
+    }
+
+    @NotNull
+    private static HikariConfig getHikariConfig(Config config) {
+        String host = config.getMySQLHost();
+        String port = config.getMySQLPort();
+        String user = config.getMySQLUser();
+        String dbname = config.getMySQLDbname();
+        String password = config.getMySQLPassword();
+        String url = "jdbc:mysql://" + host + ":" + port + "/" + dbname;
+
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl(url);
+        hikariConfig.setUsername(user);
+        hikariConfig.setPassword(password);
+        return hikariConfig;
+    }
+
     @NotNull
     public EconomyUser getEconomyUser(@NotNull Long uuid) {
-        EconomyUser economyUser = null;
+        EconomyUser economyUser;
         if (!useSQLdDB) {
-            return new EconomyUser(uuid, 0, 0, 0, 0, 0);
+            return new EconomyUser(uuid, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
         try (Connection conn = getConnection();
              PreparedStatement selectStatement = conn.prepareStatement("SELECT coins, bank, xp, level, first_received_coin FROM users_economy WHERE uuid = ?")) {
-
             selectStatement.setLong(1, uuid);
             try (ResultSet result = selectStatement.executeQuery()) {
                 if (!result.next()) {
-                    economyUser = new EconomyUser(uuid, 0, 0, 0, 0, 0);
+                    economyUser = new EconomyUser(uuid, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
                     String sql = "INSERT INTO users_economy (uuid) VALUES (?)";
                     try (PreparedStatement insertStatement = conn.prepareStatement(sql)) {
                         insertStatement.setLong(1, uuid);
                         insertStatement.executeUpdate();
+                    }
+                    try (Connection c = getConnection();
+                         PreparedStatement statement = c.prepareStatement(
+                                 "INSERT INTO user_stats (uuid, earned_rob, lost_rob, voice_time, total_message, success_rob, fail_rob) " +
+                                         "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                                         "ON DUPLICATE KEY UPDATE earned_rob = VALUES(earned_rob), lost_rob = VALUES(lost_rob), voice_time = VALUES(voice_time), total_message = VALUES(total_message), success_rob = VALUES(success_rob), fail_rob = VALUES(fail_rob)")) {
+
+                        statement.setLong(1, economyUser.getUuid());
+                        statement.setInt(2, economyUser.getEarnedFromRobs());
+                        statement.setInt(3, economyUser.getLostFromRobs());
+                        statement.setLong(4, economyUser.getVoiceTime());
+                        statement.setInt(5, economyUser.getTotalMessages());
+                        statement.setInt(6, economyUser.getSuccessRobs());
+                        statement.setInt(7, economyUser.getFailedRobs());
+
+                        statement.executeUpdate();
                     }
                 } else {
                     int coins = result.getInt("coins");
@@ -110,12 +178,34 @@ public class DatabaseConnector {
                     int xp = result.getInt("xp");
                     int level = result.getInt("level");
                     long firstReceivedCoin = result.getLong("first_received_coin");
-                    economyUser = new EconomyUser(uuid, coins, bank, xp, level, firstReceivedCoin);
+
+                    int earnedRob = 0;
+                    int lostRob = 0;
+                    long voiceTime = 0;
+                    int totalMessage = 0;
+                    int successRob = 0;
+                    int failRob = 0;
+                    String userStatsSql = "SELECT earned_rob, lost_rob, voice_time, total_message, success_rob, fail_rob FROM user_stats WHERE uuid = ?";
+                    try (PreparedStatement userStatsStatement = conn.prepareStatement(userStatsSql)) {
+                        userStatsStatement.setLong(1, uuid);
+                        try (ResultSet userStatsResult = userStatsStatement.executeQuery()) {
+                            if (userStatsResult.next()) {
+                                earnedRob = userStatsResult.getInt("earned_rob");
+                                lostRob = userStatsResult.getInt("lost_rob");
+                                voiceTime = userStatsResult.getLong("voice_time");
+                                totalMessage = userStatsResult.getInt("total_message");
+                                successRob = userStatsResult.getInt("success_rob");
+                                failRob = userStatsResult.getInt("fail_rob");
+                            }
+                        }
+                    }
+
+                    economyUser = new EconomyUser(uuid, coins, bank, xp, level, firstReceivedCoin, earnedRob, lostRob, successRob, failRob, voiceTime, totalMessage);
                 }
             }
         } catch (Exception e) {
             BotMain.logger.error("", e);
-            economyUser = new EconomyUser(uuid, 0, 0, 0, 0, 0);
+            economyUser = new EconomyUser(uuid, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
         return economyUser;
     }
@@ -139,30 +229,176 @@ public class DatabaseConnector {
             statement.setLong(6, economyUser.getFirstReceivedCoin());
 
             statement.executeUpdate();
+            BotMain.logger.debug("User " + user.getUuid() + " has been successfully saved");
         } catch (Exception e) {
             BotMain.logger.error("", e);
         }
 
-        BotMain.logger.debug("User " + user.getUuid() + " has been successfully saved");
-    }
+        try (Connection conn = getConnection();
+             PreparedStatement statement = conn.prepareStatement(
+                     "INSERT INTO user_stats (uuid, earned_rob, lost_rob, voice_time, total_message, success_rob, fail_rob) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                             "ON DUPLICATE KEY UPDATE earned_rob = VALUES(earned_rob), lost_rob = VALUES(lost_rob), voice_time = VALUES(voice_time), total_message = VALUES(total_message), success_rob = VALUES(success_rob), fail_rob = VALUES(fail_rob)")) {
 
-    private Connection getConnection() throws SQLException {
-        long currentTimeMillis = System.currentTimeMillis();
-        if (connection == null || connection.isClosed() || currentTimeMillis - lastTimeConnect > TimeUnit.HOURS.toMillis(1)) {
-            closeConnection();
-            connection = this.user != null ? DriverManager.getConnection(this.url, this.user, this.password) : DriverManager.getConnection(this.url);
-            lastTimeConnect = currentTimeMillis;
-        }
-        return connection;
-    }
+            statement.setLong(1, economyUser.getUuid());
+            statement.setInt(2, economyUser.getEarnedFromRobs());
+            statement.setInt(3, economyUser.getLostFromRobs());
+            statement.setLong(4, economyUser.getVoiceTime());
+            statement.setInt(5, economyUser.getTotalMessages());
+            statement.setInt(6, economyUser.getSuccessRobs());
+            statement.setInt(7, economyUser.getFailedRobs());
 
-    private void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-            }
-        } catch (SQLException e) {
+            statement.executeUpdate();
+        } catch (Exception e) {
             BotMain.logger.error("", e);
         }
+    }
+
+    public UserCooldown getUserCooldown(long uuid) {
+        UserCooldown userCooldown;
+        if (!useSQLdDB) {
+            return new UserCooldown(uuid, 0, 0, 0, 0, 0, 0);
+        }
+        try (Connection conn = getConnection();
+             PreparedStatement selectStatement = conn.prepareStatement("SELECT work, timely, daily, weekly, monthly, rob FROM users_cooldown WHERE uuid = ?")) {
+
+            selectStatement.setLong(1, uuid);
+            try (ResultSet result = selectStatement.executeQuery()) {
+                if (!result.next()) {
+                    userCooldown = new UserCooldown(uuid, 0, 0, 0, 0, 0, 0);
+                    String sql = "INSERT INTO users_cooldown (uuid) VALUES (?)";
+                    try (PreparedStatement insertStatement = conn.prepareStatement(sql)) {
+                        insertStatement.setLong(1, uuid);
+                        insertStatement.executeUpdate();
+                    }
+                } else {
+                    long work = result.getLong("work");
+                    long timely = result.getLong("timely");
+                    long daily = result.getLong("daily");
+                    long weekly = result.getLong("weekly");
+                    long monthly = result.getLong("monthly");
+                    long rob = result.getLong("rob");
+                    userCooldown = new UserCooldown(uuid, work, timely, daily, weekly, monthly, rob);
+                }
+            }
+        } catch (Exception e) {
+            BotMain.logger.error("", e);
+            userCooldown = new UserCooldown(uuid, 0, 0, 0, 0, 0, 0);
+        }
+        return userCooldown;
+    }
+
+    public void saveCommandsTime(UserCooldown userCooldown) {
+        if (!useSQLdDB) return;
+
+        try (Connection conn = getConnection();
+             PreparedStatement statement = conn.prepareStatement(
+                     "INSERT INTO users_cooldown (uuid, work, timely, daily, weekly, monthly, rob) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                             "ON DUPLICATE KEY UPDATE work = VALUES(work), timely = VALUES(timely), daily = VALUES(daily), weekly = VALUES(weekly), monthly = VALUES(monthly), rob = VALUES(rob)")) {
+
+            statement.setLong(1, userCooldown.getUuid());
+            statement.setLong(2, userCooldown.getWorkLastTime());
+            statement.setLong(3, userCooldown.getTimelyLastTime());
+            statement.setLong(4, userCooldown.getDailyLastTime());
+            statement.setLong(5, userCooldown.getWeeklyLastTime());
+            statement.setLong(6, userCooldown.getMonthlyLastTime());
+            statement.setLong(7, userCooldown.getRobLastTime());
+
+            statement.executeUpdate();
+        } catch (Exception e) {
+            BotMain.logger.error("", e);
+        }
+    }
+
+    @Nullable
+    public MentionObject getMentionObject(ICommand command) {
+        if (!useSQLdDB) return null;
+
+        try (Connection conn = getConnection()) {
+
+            String sql = "SELECT uuid, " + command.getName() + " FROM users_cooldown ORDER BY " + command.getName() + " ASC";
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                 ResultSet resultSet = statement.executeQuery()) {
+
+                while (resultSet.next()) {
+                    long uuid = resultSet.getLong("uuid");
+                    Mentionable mentionable = (Mentionable) SlashCommandsManager.getInstance().getCommands().stream().filter(c -> c.getName().equalsIgnoreCase(command.getName())).findFirst().orElse(null);
+                    if (mentionable == null) return null;
+                    MentionObject mentionValue = getMentionObject(conn, uuid, command, resultSet.getLong(command.getName()) + mentionable.config().getCooldown());
+                    if (mentionValue != null) {
+                        return mentionValue;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            BotMain.logger.error("Error sending command mentions", e);
+        }
+        return null;
+    }
+
+    @Nullable
+    private MentionObject getMentionObject(Connection conn, long uuid, ICommand command, long time) throws SQLException {
+        String sql = "SELECT " + command.getName() + " FROM command_mention WHERE uuid = ?";
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            statement.setLong(1, uuid);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    net.dv8tion.jda.api.entities.User user = BotMain.getInstance().getJda().getUserById(uuid);
+
+                    String string = resultSet.getString(command.getName());
+                    if (string == null) return null;
+                    String[] split = string.split("-");
+
+                    MentionType mentionType = MentionType.valueOf(split[0]);
+                    String channelId = split[1];
+                    String guildId = split[2];
+                    return new MentionObject(user, mentionType, channelId, guildId, time);
+                }
+            }
+        }
+        return null;
+    }
+
+    public void saveMentionUser(ICommand command, net.dv8tion.jda.api.entities.User user, Guild guild, Channel channel, MentionType mentionType) {
+        if (!useSQLdDB) return;
+
+        String commandName = command.getName();
+        String userString =  mentionType.toString() + "-" + channel.getId() + "-" + guild.getId();
+
+        try (Connection conn = getConnection();
+             PreparedStatement statement = conn.prepareStatement(
+                     "INSERT INTO command_mention (uuid, " + commandName + ") " +
+                             "VALUES (?, ?) " +
+                             "ON DUPLICATE KEY UPDATE " + commandName + " = VALUES(" + commandName + ")")) {
+
+            statement.setLong(1, user.getIdLong());
+            statement.setString(2, userString);
+
+            statement.executeUpdate();
+            BotMain.logger.debug("Save mention for command " + command.getName() + " for user " + user.getId());
+        } catch (Exception e) {
+            BotMain.logger.error("", e);
+        }
+    }
+
+    public void deleteMention(ICommand command, net.dv8tion.jda.api.entities.User user) {
+        if (!useSQLdDB) return;
+
+        try (Connection conn = getConnection();
+             PreparedStatement statement = conn.prepareStatement(
+                     "UPDATE command_mention SET " + command.getName() + " = NULL WHERE uuid = ?")) {
+
+            statement.setLong(1, user.getIdLong());
+            statement.executeUpdate();
+
+            BotMain.logger.debug("Set mention for command " + command.getName() + " to null for user " + user.getId());
+        } catch (SQLException e) {
+            BotMain.logger.error("Error setting mention to null", e);
+        }
+    }
+
+    public Connection getConnection() throws SQLException {
+        return dataSource.getConnection();
     }
 }

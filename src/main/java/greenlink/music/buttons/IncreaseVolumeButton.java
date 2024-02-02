@@ -1,8 +1,8 @@
 package greenlink.music.buttons;
 
 import global.buttons.IButton;
-import greenlink.music.PlayerManager;
 import greenlink.music.GuildMusicManager;
+import greenlink.music.PlayerManager;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 /**
@@ -13,7 +13,7 @@ public class IncreaseVolumeButton implements IButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
-        if (!memberCanPerform(event.getMember(), event)) return;
+        if (!memberCanPerformIfVoice(event.getMember(), event)) return;
 
         GuildMusicManager musicManager = PlayerManager.getInstance().getMusicManager(event.getGuild());
         if (musicManager.audioPlayer.getVolume() < 200) {

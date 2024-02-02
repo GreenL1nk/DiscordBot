@@ -12,8 +12,13 @@ public class ButtonListener extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
-        ButtonManager.getInstance().getCommands().stream()
-                .filter(button -> button.getButtonID().equals(event.getComponentId()))
+        ButtonManager.getInstance().getButtons().stream()
+                .filter(button -> {
+                    if (button instanceof ArgButton) {
+                        return event.getComponentId().startsWith(button.getButtonID());
+                    }
+                    return button.getButtonID().equals(event.getComponentId());
+                })
                 .findFirst()
                 .ifPresent((button) -> button.onButtonInteraction(event));
     }

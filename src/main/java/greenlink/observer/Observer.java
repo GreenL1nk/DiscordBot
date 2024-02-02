@@ -2,6 +2,7 @@ package greenlink.observer;
 
 import greenlink.User;
 import greenlink.databse.DatabaseConnector;
+import greenlink.economy.UserCooldown;
 
 /**
  * @author t.me/GreenL1nk
@@ -10,6 +11,9 @@ import greenlink.databse.DatabaseConnector;
 public interface Observer {
     default void onEconomyUserUpdate(User user) {
         DatabaseConnector.getInstance().saveUser(user);
+    }
+    default void onTimeUpdate(UserCooldown userCooldown) {
+        DatabaseConnector.getInstance().saveCommandsTime(userCooldown);
     }
 
 }

@@ -1,14 +1,13 @@
 package greenlink.economy;
 
 import global.config.Config;
-
-import java.util.concurrent.TimeUnit;
+import greenlink.observer.Observer;
 
 /**
  * @author t.me/GreenL1nk
  * 22.01.2024
  */
-public class UserCooldown {
+public class UserCooldown implements Observer {
     private long workLastTime;
     private long timelyLastTime;
     private long dailyLastTime;
@@ -22,16 +21,27 @@ public class UserCooldown {
         this.uuid = uuid;
     }
 
+    public UserCooldown(long uuid, long workLastTime, long timelyLastTime, long dailyLastTime, long weeklyLastTime, long monthlyLastTime, long robLastTime) {
+        this.uuid = uuid;
+        this.workLastTime = workLastTime;
+        this.timelyLastTime = timelyLastTime;
+        this.dailyLastTime = dailyLastTime;
+        this.weeklyLastTime = weeklyLastTime;
+        this.monthlyLastTime = monthlyLastTime;
+        this.robLastTime = robLastTime;
+    }
+
     public long getWorkLastTime() {
         return workLastTime;
     }
 
     public void setWorkLastTime(long workLastTime) {
         this.workLastTime = workLastTime;
+        onTimeUpdate(this);
     }
 
     public boolean canWork() {
-        return (config.getWorkCooldown() + workLastTime) <= System.currentTimeMillis();
+        return (config.getWork().getCooldown() + workLastTime) <= System.currentTimeMillis();
     }
 
     public long getTimelyLastTime() {
@@ -40,10 +50,11 @@ public class UserCooldown {
 
     public void setTimelyLastTime(long timelyLastTime) {
         this.timelyLastTime = timelyLastTime;
+        onTimeUpdate(this);
     }
 
     public boolean canTimely() {
-        return (config.getTimelyCooldown() + timelyLastTime) <= System.currentTimeMillis();
+        return (config.getTimely().getCooldown() + timelyLastTime) <= System.currentTimeMillis();
     }
 
     public long getDailyLastTime() {
@@ -52,10 +63,11 @@ public class UserCooldown {
 
     public void setDailyLastTime(long dailyLastTime) {
         this.dailyLastTime = dailyLastTime;
+        onTimeUpdate(this);
     }
 
     public boolean canDaily() {
-        return (config.getDailyCooldown() + dailyLastTime) <= System.currentTimeMillis();
+        return (config.getDaily().getCooldown() + dailyLastTime) <= System.currentTimeMillis();
     }
 
     public long getWeeklyLastTime() {
@@ -64,10 +76,11 @@ public class UserCooldown {
 
     public void setWeeklyLastTime(long weeklyLastTime) {
         this.weeklyLastTime = weeklyLastTime;
+        onTimeUpdate(this);
     }
 
     public boolean canWeekly() {
-        return (config.getWeeklyCooldown() + weeklyLastTime) <= System.currentTimeMillis();
+        return (config.getWeekly().getCooldown() + weeklyLastTime) <= System.currentTimeMillis();
     }
 
     public long getMonthlyLastTime() {
@@ -76,10 +89,11 @@ public class UserCooldown {
 
     public void setMonthlyLastTime(long monthlyLastTime) {
         this.monthlyLastTime = monthlyLastTime;
+        onTimeUpdate(this);
     }
 
     public boolean canMonthly() {
-        return (config.getMonthlyCooldown() + monthlyLastTime) <= System.currentTimeMillis();
+        return (config.getMonthly().getCooldown() + monthlyLastTime) <= System.currentTimeMillis();
     }
 
     public long getRobLastTime() {
@@ -88,14 +102,35 @@ public class UserCooldown {
 
     public void setRobLastTime(long robLastTime) {
         this.robLastTime = robLastTime;
+        onTimeUpdate(this);
     }
 
     public boolean canRob() {
-        return (config.getRobCooldown() + robLastTime) <= System.currentTimeMillis();
+        return (config.getRob().getCooldown() + robLastTime) <= System.currentTimeMillis();
     }
 
     public long getWorkEpochTimeCD() {
-        return (TimeUnit.MINUTES.toMillis(Config.getInstance().getWorkCooldown()) + workLastTime) / 1000;
+        return (config.getWork().getCooldown() + workLastTime) / 1000;
+    }
+
+    public long getTimelyEpochTimeCD() {
+        return (config.getTimely().getCooldown() + timelyLastTime) / 1000;
+    }
+
+    public long getDailyEpochTimeCD() {
+        return (config.getDaily().getCooldown() + dailyLastTime) / 1000;
+    }
+
+    public long getWeeklyEpochTimeCD() {
+        return (config.getWeekly().getCooldown() + weeklyLastTime) / 1000;
+    }
+
+    public long getMonthlyEpochTimeCD() {
+        return (config.getMonthly().getCooldown() + monthlyLastTime) / 1000;
+    }
+
+    public long getRobEpochTimeCD() {
+        return (config.getRob().getCooldown() + robLastTime) / 1000;
     }
 
     public long getUuid() {

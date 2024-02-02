@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 
 /**
@@ -15,7 +16,7 @@ public interface ISelectMenu {
     void onSelectMenuInteraction(StringSelectInteractionEvent event);
     String getMenuID();
 
-    default boolean memberCanPerform(Member member, StringSelectInteractionEvent event) {
+    default boolean memberCanPerformIfVoice(Member member, StringSelectInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return false;
         if (member == null) return false;
@@ -29,5 +30,13 @@ public interface ISelectMenu {
         AudioChannelUnion userChannel = userVoiceState.getChannel();
         if (userChannel == null) return false;
         return userChannel.equals(botMember.getChannel());
+    }
+
+    default boolean memberCanPerform(Member member, StringSelectInteractionEvent event) {
+        Guild guild = event.getGuild();
+        if (guild == null) return false;
+        if (member == null) return false;
+
+        return event.getGuild().getIdLong() == member.getGuild().getIdLong();
     }
 }

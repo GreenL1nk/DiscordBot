@@ -1,7 +1,5 @@
 package global.buttons;
 
-import global.commands.ICommand;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,10 +16,10 @@ public class ButtonManager {
     }
 
     public void addButtons(IButton ... iButtons) {
-        getCommands().addAll(List.of(iButtons));
+        getButtons().addAll(List.of(iButtons));
     }
 
-    public List<IButton> getCommands() { return buttonsMap; }
+    public List<IButton> getButtons() { return buttonsMap; }
 
 
     public static synchronized ButtonManager getInstance() {

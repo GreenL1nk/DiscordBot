@@ -3,6 +3,7 @@ package global.config;
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 import global.BotMain;
+import global.config.configs.*;
 import global.utils.Utils;
 import greenlink.economy.jobs.Job;
 
@@ -32,22 +33,16 @@ public class Config {
     private String mySQLUser;
     private String mySQLDbname;
     private String mySQLPassword;
-    private String coinIcon;
-    private String cashIcon;
-    private String bankIcon;
-    private String jobIcon;
-    private String totalCoinsIcon;
-    private String infoIcon;
     private double xpFormula;
     private int firstLevelXP;
-    private String levelIcon;
-    private int workCooldown;
-    private int timelyCooldown;
-    private int dailyCooldown;
-    private int weeklyCooldown;
-    private int monthlyCooldown;
-    private int robCooldown;
     private List<Job> jobs;
+    private WorkConfig work;
+    private TimelyConfig timely;
+    private DailyConfig daily;
+    private WeeklyConfig weekly;
+    private MonthlyConfig monthly;
+    private RobConfig rob;
+    private IconConfig icon;
 
 
     private Config() {
@@ -129,26 +124,6 @@ public class Config {
         return mySQLPassword;
     }
 
-    public String getCoinIcon() {
-        return coinIcon;
-    }
-
-    public String getCashIcon() {
-        return cashIcon;
-    }
-
-    public String getBankIcon() {
-        return bankIcon;
-    }
-
-    public String getTotalCoinsIcon() {
-        return totalCoinsIcon;
-    }
-
-    public String getInfoIcon() {
-        return infoIcon;
-    }
-
     public double getXpFormula() {
         return xpFormula;
     }
@@ -157,40 +132,36 @@ public class Config {
         return firstLevelXP;
     }
 
-    public String getLevelIcon() {
-        return levelIcon;
+    public WorkConfig getWork() {
+        return work;
     }
 
-    public int getWorkCooldown() {
-        return workCooldown;
+    public TimelyConfig getTimely() {
+        return timely;
     }
 
-    public int getTimelyCooldown() {
-        return timelyCooldown;
+    public DailyConfig getDaily() {
+        return daily;
     }
 
-    public int getDailyCooldown() {
-        return dailyCooldown;
+    public WeeklyConfig getWeekly() {
+        return weekly;
     }
 
-    public int getWeeklyCooldown() {
-        return weeklyCooldown;
+    public MonthlyConfig getMonthly() {
+        return monthly;
     }
 
-    public int getMonthlyCooldown() {
-        return monthlyCooldown;
+    public RobConfig getRob() {
+        return rob;
     }
 
-    public int getRobCooldown() {
-        return robCooldown;
+    public IconConfig getIcon() {
+        return icon;
     }
 
     public List<Job> getJobs() {
         return jobs;
-    }
-
-    public String getJobIcon() {
-        return jobIcon;
     }
 
     public static synchronized Config getInstance() {
