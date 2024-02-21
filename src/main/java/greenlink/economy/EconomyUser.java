@@ -1,11 +1,16 @@
 package greenlink.economy;
 
+import global.BotMain;
 import global.config.Config;
 import global.utils.Utils;
 import greenlink.User;
 import greenlink.economy.leaderboards.LeaderBoardType;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.requests.restaction.CacheRestAction;
+import org.checkerframework.checker.units.qual.C;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.IntStream;
 
@@ -57,12 +62,17 @@ public class EconomyUser extends User {
 
     public void bankWithdraw(int count) {
         this.bankBalance -= count;
-        addCoins(count);
+        int fee = (int) ((count * Config.getInstance().getBankPercent()) / 100);
+        addCoins(count - fee);
     }
 
     public void bankDeposit(int count) {
         this.bankBalance += count;
         removeCoins(count);
+    }
+
+    public void processBankFee() {
+        this.bankBalance -= (int) ((bankBalance * Config.getInstance().getBankPercent()) / 100);
     }
 
     public int getCashBalance() {
@@ -119,6 +129,19 @@ public class EconomyUser extends User {
     public void addLevel(int count) {
         this.currentLevel += count;
         onEconomyUpdate();
+        if (Config.getInstance().getLevelRoles().containsKey(currentLevel)) {
+            List<Long> roleIds = Config.getInstance().getLevelRoles().get(currentLevel);
+            BotMain.getInstance().getJda().retrieveUserById(getUuid()).useCache(false).queue(user -> {
+                roleIds.forEach(roleId -> {
+                    user.getMutualGuilds().stream().filter(guild -> guild.getRoleById(roleId) != null).findFirst().ifPresent(guild -> {
+                        Role roleById = guild.getRoleById(roleId);
+                        if (roleById != null) {
+                            guild.addRoleToMember(user, roleById).queue();
+                        }
+                    });
+                });
+            });
+        }
     }
 
     public void removeLevel(int count) {
@@ -199,9 +222,14 @@ public class EconomyUser extends User {
 
     public int getCurrentTop(LeaderBoardType leaderBoardType) {
         try {
-            return EconomyManager.getInstance().getUserTop(leaderBoardType).indexOf(this);
+            return EconomyManager.getInstance().getUserTop(leaderBoardType).indexOf(this) + 1;
         } catch (SQLException | ExecutionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public int calculatePage(LeaderBoardType leaderBoardType) {
+        int usersPerPage = 5;
+        return (getCurrentTop(leaderBoardType) + usersPerPage - 1) / usersPerPage;
     }
 }

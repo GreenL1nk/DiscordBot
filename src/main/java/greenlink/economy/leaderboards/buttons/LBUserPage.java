@@ -1,6 +1,9 @@
 package greenlink.economy.leaderboards.buttons;
 
+import global.BotMain;
 import global.buttons.ArgButton;
+import greenlink.economy.EconomyManager;
+import greenlink.economy.EconomyUser;
 import greenlink.economy.leaderboards.LeaderBoardType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -15,9 +18,9 @@ import static greenlink.economy.leaderboards.LeaderBoardCommand.*;
 
 /**
  * @author t.me/GreenL1nk
- * 01.02.2024
+ * 02.02.2024
  */
-public class PrevPage extends ArgButton {
+public class LBUserPage extends ArgButton {
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         Member member = event.getMember();
@@ -26,17 +29,20 @@ public class PrevPage extends ArgButton {
         if (!memberCanPerform(member, event)) return;
 
         String[] args = getArgs(event);
-        int nextPage = Integer.parseInt(args[0]);
+
         LeaderBoardType leaderBoardType = Arrays.stream(LeaderBoardType.values())
-                .filter(board -> board.name().equalsIgnoreCase(args[1]))
+                .filter(board -> board.name().equalsIgnoreCase(args[0]))
                 .findFirst()
                 .orElse(LeaderBoardType.BALANCE);
 
         event.deferEdit().queue(reply -> {
-            MessageEmbed embedBuilder = getEmbedBuilder(member, leaderBoardType, nextPage);
+            EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+            if (economyUser == null) return;
+            int page = economyUser.calculatePage(leaderBoardType);
+            MessageEmbed embedBuilder = getEmbedBuilder(member, leaderBoardType, page);
             Collection<ActionRow> actionRows = new ArrayList<>();
             actionRows.add(getMenu(leaderBoardType));
-            Collection<ActionRow> buttons = getButtons(leaderBoardType, nextPage);
+            Collection<ActionRow> buttons = getButtons(leaderBoardType, page);
             actionRows.addAll(buttons);
             reply.editOriginalEmbeds(embedBuilder)
                     .setComponents(actionRows).queue();
@@ -46,6 +52,6 @@ public class PrevPage extends ArgButton {
 
     @Override
     public String getButtonID() {
-        return "lbback";
+        return "lbuserpage";
     }
 }

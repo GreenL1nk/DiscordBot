@@ -1,10 +1,12 @@
 package greenlink;
 
+import global.BotMain;
 import greenlink.databse.DatabaseConnector;
 import greenlink.economy.EconomyManager;
 import greenlink.economy.EconomyUser;
 import greenlink.economy.UserCooldown;
 import greenlink.observer.Observer;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author t.me/GreenL1nk
@@ -23,8 +25,11 @@ public class User implements Observer {
         return uuid;
     }
 
+    @Nullable
     public EconomyUser getEconomyUser() {
-         return EconomyManager.getInstance().getEconomyUser(this.uuid);
+        net.dv8tion.jda.api.entities.User userById = BotMain.getInstance().getJda().getUserById(uuid);
+        if (userById == null) return null;
+        return EconomyManager.getInstance().getEconomyUser(userById);
     }
 
     public void onEconomyUpdate() {

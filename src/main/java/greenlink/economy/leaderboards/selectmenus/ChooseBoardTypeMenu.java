@@ -1,7 +1,6 @@
 package greenlink.economy.leaderboards.selectmenus;
 
 import global.selectmenus.ISelectMenu;
-import greenlink.economy.leaderboards.LeaderBoardCommand;
 import greenlink.economy.leaderboards.LeaderBoardType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;

@@ -1,7 +1,5 @@
 package global.modals;
 
-import global.buttons.IButton;
-
 import java.util.ArrayList;
 import java.util.List;
 

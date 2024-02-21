@@ -1,6 +1,5 @@
 package greenlink.mentions;
 
-import global.BotMain;
 import global.commands.ICommand;
 import global.commands.SlashCommandsManager;
 import global.config.configs.ConfigImpl;

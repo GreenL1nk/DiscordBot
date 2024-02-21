@@ -2,6 +2,7 @@ package greenlink.economy.commands;
 
 import global.commands.SlashCommand;
 import global.config.Config;
+import greenlink.databse.DatabaseConnector;
 import greenlink.economy.EconomyManager;
 import greenlink.economy.EconomyUser;
 import net.dv8tion.jda.api.entities.Member;
@@ -28,12 +29,18 @@ public class DepositCommand extends SlashCommand {
         int count = event.getOptions().get(0).getAsInt();
         if (count == 0) return;
 
-        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (economyUser.getCashBalance() < count) {
             event.deferReply(true).setContent("Ваш баланс баланс меньше " + count + Config.getInstance().getIcon().getCoinIcon()).queue();
             return;
         }
         economyUser.bankDeposit(count);
+
+        DatabaseConnector.getInstance().lastFeeTime(economyUser.getUuid(), false);
 
         event.deferReply(true).setContent(String.format("<@%s> на ваш счёт в банке успешно переведено %d%s",
                 economyUser.getUuid(), count,

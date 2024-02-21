@@ -22,15 +22,19 @@ public class PayCommand extends SlashCommand {
         if (!memberCanPerform(member, event)) return;
         if (event.getOptions().isEmpty()) return;
         Member toPay = event.getOptions().get(0).getAsMember();
-        if (Integer.MAX_VALUE < event.getOptions().get(0).getAsLong()) {
+        if (event.getOptions().get(1).getAsLong() > Integer.MAX_VALUE) {
             event.deferReply(true).setContent("Значение не должно превышать " + Integer.MAX_VALUE).queue();
             return;
         }
         int count = event.getOptions().get(1).getAsInt();
         if (toPay == null) return;
         if (count == 0) return;
-        EconomyUser receiver = EconomyManager.getInstance().getEconomyUser(toPay.getIdLong());
-        EconomyUser payer = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser receiver = EconomyManager.getInstance().getEconomyUser(toPay.getUser());
+        EconomyUser payer = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (receiver == null || payer == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (payer.getCashBalance() < count) {
             event.deferReply(true).setContent("Ваш баланс наличных меньше " + count + Config.getInstance().getIcon().getCoinIcon()).queue();
             return;

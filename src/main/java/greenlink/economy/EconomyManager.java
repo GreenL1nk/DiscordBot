@@ -6,6 +6,10 @@ import com.google.common.cache.RemovalListener;
 import global.BotMain;
 import greenlink.databse.DatabaseConnector;
 import greenlink.economy.leaderboards.LeaderBoardType;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.requests.RestAction;
+import net.dv8tion.jda.api.requests.restaction.CacheRestAction;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -33,13 +37,18 @@ public class EconomyManager {
                 .build();
     }
 
-    public EconomyUser getEconomyUser(long uuid) {
+    @Nullable
+    public EconomyUser getEconomyUser(User user) {
+        if (user.isBot()) {
+            BotMain.logger.debug("Был получен бот, скипаем economyUser");
+            return null;
+        }
         try {
-            return cache.get(uuid, () -> DatabaseConnector.getInstance().getEconomyUser(uuid));
+            return cache.get(user.getIdLong(), () -> DatabaseConnector.getInstance().getEconomyUser(user.getIdLong()));
         } catch (ExecutionException e) {
             BotMain.logger.warn(e.getMessage());
-            BotMain.logger.warn("Загрузка пользователя вызвало ошибку, создаём нового для " + uuid);
-            return DatabaseConnector.getInstance().getEconomyUser(uuid);
+            BotMain.logger.warn("Загрузка пользователя вызвало ошибку, создаём нового для " + user.getIdLong());
+            return DatabaseConnector.getInstance().getEconomyUser(user.getIdLong());
         }
     }
 
@@ -176,6 +185,14 @@ public class EconomyManager {
         }
 
         return economyUsers;
+    }
+
+    private CacheRestAction<User> getUser(long uuid) {
+        return BotMain.getInstance().getJda().retrieveUserById(uuid).useCache(false);
+    }
+
+    public RestAction<EconomyUser> getEconomyUser(long uuid) {
+        return getUser(uuid).map(this::getEconomyUser);
     }
 
     private EconomyUser getResultUser(long uuid) {

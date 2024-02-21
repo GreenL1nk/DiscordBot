@@ -27,16 +27,26 @@ public class WithdrawCommand extends SlashCommand {
         int count = event.getOptions().get(0).getAsInt();
         if (count == 0) return;
 
-        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (economyUser.getBankBalance() < count) {
             event.deferReply(true).setContent("Ваш банковский баланс меньше " + count + Config.getInstance().getIcon().getCoinIcon()).queue();
             return;
         }
         economyUser.bankWithdraw(count);
 
-        event.deferReply(true).setContent(String.format("<@%s> вы успешно сняли %d%s наличных средств с банковского счёта",
-                economyUser.getUuid(), count,
-                Config.getInstance().getIcon().getCoinIcon())).queue();
+        int fee = (int) ((count * Config.getInstance().getBankPercent()) / 100);
+        int coins = count - fee;
+
+        event.deferReply(true).setContent(String.format("<@%s> вы успешно сняли %d%s наличных средств с банковского счёта\n" +
+                        "Заплатив комиссию %d%s",
+                economyUser.getUuid(), coins,
+                Config.getInstance().getIcon().getCoinIcon(),
+                fee, Config.getInstance().getIcon().getCoinIcon()
+                        )).queue();
     }
 
     @Override

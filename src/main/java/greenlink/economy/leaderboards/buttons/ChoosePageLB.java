@@ -1,8 +1,6 @@
 package greenlink.economy.leaderboards.buttons;
 
 import global.buttons.ArgButton;
-import global.buttons.IButton;
-import global.selectmenus.ArgSelectMenu;
 import greenlink.economy.leaderboards.LeaderBoardType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;

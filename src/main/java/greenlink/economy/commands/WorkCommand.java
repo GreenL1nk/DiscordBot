@@ -32,7 +32,11 @@ public class WorkCommand extends SlashCommand implements Mentionable {
         if (event.getGuild() == null) return;
         if (!memberCanPerform(member, event)) return;
 
-        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (!economyUser.getUserCooldown().canWork()) {
             event.deferReply(true).setContent(String.format("**Будет доступна:** <t:%d:R>", economyUser.getUserCooldown().getWorkEpochTimeCD())).queue();
             return;

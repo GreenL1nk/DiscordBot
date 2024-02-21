@@ -29,7 +29,11 @@ public class WeeklyCommand extends SlashCommand implements Mentionable {
         if (event.getGuild() == null) return;
         if (!memberCanPerform(member, event)) return;
 
-        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (!economyUser.getUserCooldown().canWeekly()) {
             event.deferReply(true).setContent(String.format("**:x: <@%d>, еженедельный бонус будет доступен <t:%d:R>.**",
                     member.getIdLong(),

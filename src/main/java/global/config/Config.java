@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -43,7 +44,9 @@ public class Config {
     private MonthlyConfig monthly;
     private RobConfig rob;
     private IconConfig icon;
-
+    private HashMap<Integer, List<Long>> levelRoles;
+    public double bankPercent;
+    public double bankFeePeriodMinutes;
 
     private Config() {
         ensureConfigFileExists();
@@ -160,8 +163,20 @@ public class Config {
         return icon;
     }
 
+    public HashMap<Integer, List<Long>> getLevelRoles() {
+        return levelRoles;
+    }
+
     public List<Job> getJobs() {
         return jobs;
+    }
+
+    public double getBankPercent() {
+        return bankPercent;
+    }
+
+    public double getBankFeePeriodMinutes() {
+        return bankFeePeriodMinutes;
     }
 
     public static synchronized Config getInstance() {

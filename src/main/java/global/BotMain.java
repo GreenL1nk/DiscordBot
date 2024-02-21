@@ -10,13 +10,11 @@ import global.modals.ModalManager;
 import global.selectmenus.SelectMenuListener;
 import global.selectmenus.SelectMenusManager;
 import greenlink.economy.EconomyManager;
+import greenlink.economy.bank.BankFeeManager;
 import greenlink.economy.commands.*;
 import greenlink.economy.leaderboards.LeaderBoardCommand;
 import greenlink.economy.leaderboards.LeaderBoardType;
-import greenlink.economy.leaderboards.buttons.ChoosePageLB;
-import greenlink.economy.leaderboards.buttons.LeaderBoardDelete;
-import greenlink.economy.leaderboards.buttons.NextPage;
-import greenlink.economy.leaderboards.buttons.PrevPage;
+import greenlink.economy.leaderboards.buttons.*;
 import greenlink.economy.leaderboards.modals.ChoosePageLBModal;
 import greenlink.economy.leaderboards.selectmenus.ChooseBoardTypeMenu;
 import greenlink.economy.listeners.EconomyMessageListener;
@@ -32,6 +30,7 @@ import greenlink.music.selectmenus.SetTrackMenu;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,8 +60,9 @@ public class BotMain {
                         new EconomyVoiceListener(),
                         new EconomyMessageListener()
                 )
-                .enableIntents(GatewayIntent.GUILD_VOICE_STATES, GatewayIntent.GUILD_PRESENCES)
+                .enableIntents(GatewayIntent.GUILD_VOICE_STATES, GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MEMBERS)
                 .enableCache(CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.EMOJI)
+                .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         addCommands();
         addButtons();
@@ -73,6 +73,7 @@ public class BotMain {
         instance = this;
 
         MentionManager.getInstance();
+        BankFeeManager.getInstance();
         Arrays.stream(LeaderBoardType.values()).forEach(leaderBoardType -> {
             try {
                 EconomyManager.getInstance().getUserTop(leaderBoardType);
@@ -124,7 +125,8 @@ public class BotMain {
                 new NextPage(),
                 new PrevPage(),
                 new LeaderBoardDelete(),
-                new ChoosePageLB()
+                new ChoosePageLB(),
+                new LBUserPage()
         );
     }
 
@@ -139,7 +141,7 @@ public class BotMain {
     }
 
     public static void main(String[] args) {
-        BotMain bot = new BotMain();
+        new BotMain();
     }
 
     public JDA getJda() {

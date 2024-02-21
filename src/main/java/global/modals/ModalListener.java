@@ -1,6 +1,5 @@
 package global.modals;
 
-import global.buttons.ArgButton;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;

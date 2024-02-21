@@ -1,6 +1,7 @@
 package greenlink.economy.listeners;
 
 import greenlink.economy.EconomyManager;
+import greenlink.economy.EconomyUser;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -17,7 +18,11 @@ public class EconomyMessageListener extends ListenerAdapter {
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         Member member = event.getMember();
         if (event.getChannelType() != ChannelType.PRIVATE && member != null) {
-            EconomyManager.getInstance().getEconomyUser(member.getIdLong()).addMessage();
+            EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+            if (economyUser == null) {
+                return;
+            }
+            economyUser.addMessage();
         }
     }
 }

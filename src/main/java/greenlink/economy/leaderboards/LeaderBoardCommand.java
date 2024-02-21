@@ -141,6 +141,8 @@ public class LeaderBoardCommand extends SlashCommand {
 
         buttons.add(Button.of(ButtonStyle.SECONDARY, "lbchoosepage-" + leaderBoardType.name(), "Перейти к странице").withDisabled(pages < 2));
 
+        buttons.add(Button.of(ButtonStyle.SECONDARY, "lbuserpage-" + leaderBoardType.name(), "Перейти к своей").withDisabled(pages < 2));
+
         buttons.add(Button.of(ButtonStyle.SECONDARY, "lbnext-" + (currentPage + 1) + "-" + leaderBoardType.name(), "", Emoji.fromUnicode("➡️")).withDisabled(pages < 2 || pages == currentPage));
 
         buttons.add(Button.of(ButtonStyle.SECONDARY, "lbdelete", "", Emoji.fromUnicode("❌")).asEnabled());

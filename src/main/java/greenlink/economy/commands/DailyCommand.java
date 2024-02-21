@@ -30,7 +30,11 @@ public class DailyCommand extends SlashCommand implements Mentionable {
         if (event.getGuild() == null) return;
         if (!memberCanPerform(member, event)) return;
 
-        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) {
+            event.deferReply(true).setContent("Бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (!economyUser.getUserCooldown().canDaily()) {
             event.deferReply(true).setContent(String.format("**:x: <@%d>, ежедневный бонус будет доступен <t:%d:R>.**",
                     member.getIdLong(),

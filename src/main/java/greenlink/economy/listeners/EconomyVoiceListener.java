@@ -29,7 +29,10 @@ public class EconomyVoiceListener extends ListenerAdapter {
         // the member moved between two audio channels in the same guild
         if (joinedChannel != null && leftChannel != null) {
             Long joinedTime = usersJoinedMap.get(member.getIdLong());
-            EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+            EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+            if (economyUser == null) {
+                return;
+            }
             economyUser.addVoiceTime(currentTime - joinedTime);
             usersJoinedMap.put(member.getIdLong(), currentTime);
             return;
@@ -42,7 +45,10 @@ public class EconomyVoiceListener extends ListenerAdapter {
         // the member left an audio channel
         if (leftChannel != null) {
             Long joinedTime = usersJoinedMap.get(member.getIdLong());
-            EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+            EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+            if (economyUser == null) {
+                return;
+            }
             economyUser.addVoiceTime(currentTime - joinedTime);
             usersJoinedMap.remove(member.getIdLong());
         }

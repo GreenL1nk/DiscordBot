@@ -34,7 +34,11 @@ public class RobCommand extends SlashCommand implements Mentionable {
             event.reply("Необходимо указать пользователя").setEphemeral(true).queue();
             return;
         }
-        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (!economyUser.getUserCooldown().canRob()) {
             event.deferReply(true).setContent(String.format("**:x: <@%d>, попытка будет доступна <t:%d:R>.**",
                     member.getIdLong(),
@@ -55,7 +59,11 @@ public class RobCommand extends SlashCommand implements Mentionable {
             event.deferReply(true).addContent("Нельзя красть у себя").queue();
             return;
         }
-        EconomyUser toRob = EconomyManager.getInstance().getEconomyUser(argMember.getIdLong());
+        EconomyUser toRob = EconomyManager.getInstance().getEconomyUser(argMember.getUser());
+        if (toRob == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (toRob.getCashBalance() <= 0 || toRob.getCashBalance() < config.getMinValue()) {
             event.reply(String.format(":x: У <@%d> нет достаточного кол-ва наличных средств", argMember.getIdLong())).setEphemeral(true).queue();
             return;

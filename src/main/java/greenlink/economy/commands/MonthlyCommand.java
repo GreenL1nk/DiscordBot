@@ -29,7 +29,11 @@ public class MonthlyCommand extends SlashCommand implements Mentionable {
         if (event.getGuild() == null) return;
         if (!memberCanPerform(member, event)) return;
 
-        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) {
+            event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+            return;
+        }
         if (!economyUser.getUserCooldown().canMonthly()) {
             event.deferReply(true).setContent(String.format("**:x: <@%d>, ежемесячный бонус будет доступен <t:%d:R>.**",
                     member.getIdLong(),

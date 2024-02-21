@@ -31,8 +31,6 @@ public class MentionManager {
         if (mentionObject == null) return;
         commandExecutors.put(command, service);
         long scheduleTime = mentionObject.timeMention - System.currentTimeMillis();
-        BotMain.logger.debug("Запуск для - " + command.getName());
-        BotMain.logger.debug("Время: " + scheduleTime);
         service.schedule(() -> {
             mentionUser(mentionObject.user, mentionObject.mentionType, mentionObject.channelId, command, mentionObject.guildId);
             commandExecutors.remove(command);

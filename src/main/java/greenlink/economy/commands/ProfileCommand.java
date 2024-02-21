@@ -45,7 +45,11 @@ public class ProfileCommand extends SlashCommand {
         MessageEmbed messageEmbed;
 
         if (event.getOptions().isEmpty()) {
-            economyUser = EconomyManager.getInstance().getEconomyUser(member.getIdLong());
+            economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+            if (economyUser == null) {
+                event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+                return;
+            }
             messageEmbed = getEmbedBuilder(member, economyUser, false);
             event.deferReply().addEmbeds(messageEmbed).queue();
         }
@@ -56,10 +60,15 @@ public class ProfileCommand extends SlashCommand {
                 return;
             }
 
+            economyUser = EconomyManager.getInstance().getEconomyUser(argMember.getUser());
+            if (economyUser == null) {
+                event.deferReply(true).setContent("бот не может использоваться для этих целей").queue();
+                return;
+            }
+
             event.deferReply().queue();
             InteractionHook hook = event.getHook();
 
-            economyUser = EconomyManager.getInstance().getEconomyUser(argMember.getIdLong());
             messageEmbed = getEmbedBuilder(argMember, economyUser,true);
 
             byte[] imageData;
@@ -77,10 +86,6 @@ public class ProfileCommand extends SlashCommand {
             }
             hook.sendFiles(FileUpload.fromData(imageData, "profile.png")).addEmbeds(messageEmbed).queue();
         }
-        economyUser.addCoins(1);
-        economyUser.addXp(1);
-
-
     }
 
     @NotNull

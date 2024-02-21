@@ -9,6 +9,7 @@ import global.config.Config;
 import greenlink.User;
 import greenlink.economy.EconomyUser;
 import greenlink.economy.UserCooldown;
+import greenlink.economy.bank.BankFee;
 import greenlink.mentions.MentionObject;
 import greenlink.mentions.MentionType;
 import greenlink.mentions.Mentionable;
@@ -21,6 +22,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 
 public class DatabaseConnector {
     private String url;
@@ -95,6 +97,13 @@ public class DatabaseConnector {
                                      "`fail_rob` INT NULL DEFAULT 0, " +
                                      "PRIMARY KEY (`uuid`) ) " +
                                      "COLLATE='utf8_unicode_ci' ;");
+
+                     PreparedStatement statement5 = conn.prepareStatement(
+                             "CREATE TABLE IF NOT EXISTS `bank_fee` ( " +
+                                     "`uuid` BIGINT NOT NULL, " +
+                                     "`last_operation` BIGINT NULL DEFAULT 0, " +
+                                     "PRIMARY KEY (`uuid`) ) " +
+                                     "COLLATE='utf8_unicode_ci' ;");
                 )
                 {
 
@@ -103,6 +112,7 @@ public class DatabaseConnector {
                     statement2.executeUpdate();
                     statement3.executeUpdate();
                     statement4.executeUpdate();
+                    statement5.executeUpdate();
                 }
             }
         } catch (Exception e) {
@@ -345,6 +355,7 @@ public class DatabaseConnector {
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
                     net.dv8tion.jda.api.entities.User user = BotMain.getInstance().getJda().getUserById(uuid);
+                    if (user != null && user.isBot()) return null;
 
                     String string = resultSet.getString(command.getName());
                     if (string == null) return null;
@@ -362,6 +373,7 @@ public class DatabaseConnector {
 
     public void saveMentionUser(ICommand command, net.dv8tion.jda.api.entities.User user, Guild guild, Channel channel, MentionType mentionType) {
         if (!useSQLdDB) return;
+        if (user.isBot()) return;
 
         String commandName = command.getName();
         String userString =  mentionType.toString() + "-" + channel.getId() + "-" + guild.getId();
@@ -384,6 +396,7 @@ public class DatabaseConnector {
 
     public void deleteMention(ICommand command, net.dv8tion.jda.api.entities.User user) {
         if (!useSQLdDB) return;
+        if (user.isBot()) return;
 
         try (Connection conn = getConnection();
              PreparedStatement statement = conn.prepareStatement(
@@ -396,6 +409,56 @@ public class DatabaseConnector {
         } catch (SQLException e) {
             BotMain.logger.error("Error setting mention to null", e);
         }
+    }
+
+    public long lastFeeTime(long uuid, boolean update) {
+        if (!useSQLdDB) return -1;
+
+        long lastTime = -1;
+        try (Connection conn = getConnection();
+             PreparedStatement selectStatement = conn.prepareStatement("SELECT last_operation FROM bank_fee WHERE uuid = ?")) {
+
+            selectStatement.setLong(1, uuid);
+            try (ResultSet result = selectStatement.executeQuery()) {
+                if (!result.next() || update) {
+                    lastTime = System.currentTimeMillis();
+                    String sql = "INSERT INTO bank_fee (uuid, last_operation) " +
+                            "VALUES (?, ?) " +
+                            "ON DUPLICATE KEY UPDATE last_operation = VALUES(last_operation)";
+                    try (PreparedStatement insertStatement = conn.prepareStatement(sql)) {
+                        insertStatement.setLong(1, uuid);
+                        insertStatement.setLong(2, lastTime);
+                        insertStatement.executeUpdate();
+                    }
+                } else {
+                    lastTime = result.getLong("last_operation");
+                }
+            }
+        } catch (Exception e) {
+            BotMain.logger.error("", e);
+        }
+        return lastTime;
+    }
+
+    @Nullable
+    public BankFee getLowestNextFeeTime() {
+        if (!useSQLdDB) return null;
+
+        try (Connection conn = getConnection()) {
+
+            String sql = "SELECT uuid, last_operation FROM bank_fee ORDER BY last_operation ASC";
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                 ResultSet resultSet = statement.executeQuery()) {
+
+                while (resultSet.next()) {
+                    long uuid = resultSet.getLong("uuid");
+                    return new BankFee(uuid,resultSet.getLong("last_operation") + TimeUnit.MINUTES.toMillis((long) Config.getInstance().getBankFeePeriodMinutes()));
+                }
+            }
+        } catch (SQLException e) {
+            BotMain.logger.error("Error sending command mentions", e);
+        }
+        return null;
     }
 
     public Connection getConnection() throws SQLException {
