@@ -84,5 +84,6 @@
     ]
   },
   "bankFeePercent": 7.5,
-  "bankFeePeriodMinutes": 10080
+  "bankFeePeriodMinutes": 10080,
+  "adminRoleId": 0
 }

@@ -25,11 +25,11 @@ public class Utils {
         final long seconds = (timeInMillis % TimeUnit.MINUTES.toMillis(1)) / TimeUnit.SECONDS.toMillis(1);
 
         if (days > 0) {
-            return String.format("%ddд:%02dч:%02dм:%02dс", days, hours, minutes, seconds);
+            return String.format("%dд %02dч %02dм %02dс", days, hours, minutes, seconds);
         } else if (hours > 0) {
-            return String.format("%02dч:%02dм:%02dс", hours, minutes, seconds);
+            return String.format("%02dч %02dм %02dс", hours, minutes, seconds);
         } else if (minutes > 0) {
-            return String.format("%02dм:%02dс", minutes, seconds);
+            return String.format("%02dм %02dс", minutes, seconds);
         } else {
             return String.format("%dс", seconds);
         }
@@ -65,6 +65,20 @@ public class Utils {
 
     public static boolean loadMysqlDriver() {
         return loadJdbcDriver();
+    }
+
+    public static int getNumberFromExpression(int number, String expression) {
+        if (expression.startsWith("*")) {
+            return number * Integer.parseInt(expression.substring(1));
+        } else if (expression.startsWith("/")) {
+            return number / Integer.parseInt(expression.substring(1));
+        } else if (expression.startsWith("+")) {
+            return number + Integer.parseInt(expression.substring(1));
+        } else if (expression.startsWith("-")) {
+            return number - Integer.parseInt(expression.substring(1));
+        } else {
+            return number;
+        }
     }
 
 }

@@ -104,6 +104,20 @@ public class DatabaseConnector {
                                      "`last_operation` BIGINT NULL DEFAULT 0, " +
                                      "PRIMARY KEY (`uuid`) ) " +
                                      "COLLATE='utf8_unicode_ci' ;");
+
+                     PreparedStatement statement6 = conn.prepareStatement(
+                             "CREATE TABLE IF NOT EXISTS `shop_roles` ( " +
+                                     "`id` BIGINT NOT NULL, " +
+                                     "`work_exp` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`timely_exp` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`daily_exp` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`weekly_exp` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`monthly_exp` VARCHAR(60) NULL DEFAULT NULL, " +
+                                     "`coin_multiplier` INT NULL DEFAULT -1, " +
+                                     "`left_count` INT NULL DEFAULT -1, " +
+                                     "`price` INT NULL DEFAULT -1, " +
+                                     "PRIMARY KEY (`id`) ) " +
+                                     "COLLATE='utf8_unicode_ci' ;");
                 )
                 {
 
@@ -113,6 +127,7 @@ public class DatabaseConnector {
                     statement3.executeUpdate();
                     statement4.executeUpdate();
                     statement5.executeUpdate();
+                    statement6.executeUpdate();
                 }
             }
         } catch (Exception e) {
@@ -460,6 +475,8 @@ public class DatabaseConnector {
         }
         return null;
     }
+
+
 
     public Connection getConnection() throws SQLException {
         return dataSource.getConnection();

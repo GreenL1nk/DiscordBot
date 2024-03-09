@@ -47,6 +47,7 @@ public class Config {
     private HashMap<Integer, List<Long>> levelRoles;
     public double bankPercent;
     public double bankFeePeriodMinutes;
+    public long adminRoleId;
 
     private Config() {
         ensureConfigFileExists();
@@ -177,6 +178,10 @@ public class Config {
 
     public double getBankFeePeriodMinutes() {
         return bankFeePeriodMinutes;
+    }
+
+    public long getAdminRoleId() {
+        return adminRoleId;
     }
 
     public static synchronized Config getInstance() {

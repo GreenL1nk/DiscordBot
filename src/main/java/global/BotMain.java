@@ -27,6 +27,13 @@ import greenlink.music.buttons.*;
 import greenlink.music.commands.PlayCommand;
 import greenlink.music.selectmenus.SelectTrackMenu;
 import greenlink.music.selectmenus.SetTrackMenu;
+import greenlink.shop.buttons.EditRoleBoostsButton;
+import greenlink.shop.buttons.EditRoleButton;
+import greenlink.shop.buttons.SaveRoleShopButton;
+import greenlink.shop.commands.SettingCommand;
+import greenlink.shop.commands.ShopCommand;
+import greenlink.shop.menu.ChooseRole;
+import greenlink.shop.modals.EditRoleShop;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -47,6 +54,9 @@ public class BotMain {
     private static BotMain instance;
 
     public BotMain() {
+
+        instance = this;
+
         Config.getInstance();
 
         jda = JDABuilder.createDefault(Config.getInstance().getToken())
@@ -69,8 +79,6 @@ public class BotMain {
         addSelectMenus();
         addModals();
         SlashCommandsManager.getInstance().updateCommands(jda);
-
-        instance = this;
 
         MentionManager.getInstance();
         BankFeeManager.getInstance();
@@ -96,7 +104,9 @@ public class BotMain {
                 new DepositCommand(),
                 new WithdrawCommand(),
                 new LeaderBoardCommand(),
-                new PayCommand()
+                new PayCommand(),
+                new ShopCommand(),
+                new SettingCommand()
         );
     }
 
@@ -105,7 +115,8 @@ public class BotMain {
                 new SelectTrackMenu(),
                 new SetTrackMenu(),
                 new ChooseMentionMenu(),
-                new ChooseBoardTypeMenu()
+                new ChooseBoardTypeMenu(),
+                new ChooseRole()
         );
     }
 
@@ -126,13 +137,17 @@ public class BotMain {
                 new PrevPage(),
                 new LeaderBoardDelete(),
                 new ChoosePageLB(),
-                new LBUserPage()
+                new LBUserPage(),
+                new EditRoleButton(),
+                new EditRoleBoostsButton(),
+                new SaveRoleShopButton()
         );
     }
 
     public void addModals() {
         ModalManager.getInstance().addModals(
-                new ChoosePageLBModal()
+                new ChoosePageLBModal(),
+                new EditRoleShop()
         );
     }
 
