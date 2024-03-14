@@ -25,8 +25,9 @@ public class SettingCommand extends SlashCommand {
         if (!memberCanPerform(member, event)) return;
         Guild guild = event.getGuild();
         if (guild == null) return;
+
         event.deferReply().queue(reply -> {
-            reply.editOriginalComponents(getRoleSelectMenu(ShopCommand.rolesShop, 1)).queue();
+            reply.editOriginalComponents(getRoleSelectMenu(ShopCommand.rolesShop, 1, guild.getRoles())).queue();
         });
     }
 
@@ -51,7 +52,11 @@ public class SettingCommand extends SlashCommand {
         return false;
     }
 
-    public static ActionRow getRoleSelectMenu(List<RoleShop> roles, int page) {
+    public static ActionRow getRoleSelectMenu(List<RoleShop> roles, int page, List<Role> guildRoles) {
+        List<Role> collect = guildRoles.stream().filter(role -> roles.stream().noneMatch(roleShop -> role.getIdLong() == roleShop.getRole().getIdLong())).toList();
+        collect.forEach(role -> {
+            roles.add(new RoleShop("x1", "x1", "x1", "x1", "x1", 0, 1, 1, role));
+        });
         int nextPage = page + 1;
         page -= 1;
         int startIndex = page * 23;

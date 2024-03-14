@@ -3,6 +3,7 @@ package greenlink.shop.modals;
 import global.BotMain;
 import global.config.Config;
 import global.modals.ArgModal;
+import greenlink.databse.DatabaseConnector;
 import greenlink.shop.RoleShop;
 import greenlink.shop.commands.ShopCommand;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -39,18 +40,16 @@ public class EditRoleShop extends ArgModal {
 
         long id = Long.parseLong(getArgs(event)[0]);
 
-        Role role = BotMain.getInstance().getJda().getRoleById(id);
-
         RoleShop roleShop = cacheRole.stream().filter(rs -> rs.getRole().getIdLong() == id).findFirst().orElse(null);
         if (roleShop == null) {
-            roleShop = new RoleShop("x1", "x1", "x1", "x1", "x1", 0, 1, 1, role);
+            roleShop = DatabaseConnector.getInstance().loadShopRole(id);
             cacheRole.add(roleShop);
         }
 
         if (event.getValue("roleshop-price") != null) {
             roleShop.setPrice(Integer.parseInt(event.getValue("roleshop-price").getAsString()));
             roleShop.setLeftCount(Integer.parseInt(event.getValue("roleshop-count").getAsString()));
-            roleShop.setCoinMultiplier(event.getValue("roleshop-multiplier") != null ? Integer.parseInt(event.getValue("roleshop-multiplier").getAsString()) : 1);
+            roleShop.setCoinMultiplier(event.getValue("roleshop-multiplier") != null ? Double.parseDouble(event.getValue("roleshop-multiplier").getAsString()) : 1);
         }
         else {
             roleShop.setWorkExp(event.getValue("roleshop-work").getAsString());
@@ -60,14 +59,11 @@ public class EditRoleShop extends ArgModal {
             roleShop.setMonthlyExp(event.getValue("roleshop-monthly").getAsString());
         }
 
-        //описание роли
-
         List<Button> buttons = new ArrayList<>();
 
         buttons.add(Button.of(ButtonStyle.SECONDARY, "roleshoprequirement-" + id, "Отредактировать цену и кол-во"));
         buttons.add(Button.of(ButtonStyle.SECONDARY, "roleshopboosts-" + id, "Отредактировать бусты"));
         buttons.add(Button.of(ButtonStyle.SUCCESS, "roleshopsave-" + id, "Сохранить и добавить в магазин"));
-        //save db
         buttons.add(Button.of(ButtonStyle.DANGER, "roleshopdelete-" + id, "Удалить из магазина")
                 .withDisabled(ShopCommand.rolesShop.stream().anyMatch(rs -> rs.getRole().getIdLong() == id)));
 

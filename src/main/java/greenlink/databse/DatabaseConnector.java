@@ -13,7 +13,9 @@ import greenlink.economy.bank.BankFee;
 import greenlink.mentions.MentionObject;
 import greenlink.mentions.MentionType;
 import greenlink.mentions.Mentionable;
+import greenlink.shop.RoleShop;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -113,7 +115,7 @@ public class DatabaseConnector {
                                      "`daily_exp` VARCHAR(60) NULL DEFAULT NULL, " +
                                      "`weekly_exp` VARCHAR(60) NULL DEFAULT NULL, " +
                                      "`monthly_exp` VARCHAR(60) NULL DEFAULT NULL, " +
-                                     "`coin_multiplier` INT NULL DEFAULT -1, " +
+                                     "`coin_multiplier` DOUBLE NULL DEFAULT -1, " +
                                      "`left_count` INT NULL DEFAULT -1, " +
                                      "`price` INT NULL DEFAULT -1, " +
                                      "PRIMARY KEY (`id`) ) " +
@@ -471,12 +473,73 @@ public class DatabaseConnector {
                 }
             }
         } catch (SQLException e) {
-            BotMain.logger.error("Error sending command mentions", e);
+            BotMain.logger.error("Error getLowestNextFeeTime", e);
         }
         return null;
     }
 
+    public void saveRoleShop(RoleShop shopRole) {
+        String query = "INSERT INTO shop_roles (id, work_exp, timely_exp, daily_exp, weekly_exp, monthly_exp, left_count, coin_multiplier, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = this.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setLong(1, shopRole.getRole().getIdLong());
+            pstmt.setString(2, shopRole.getWorkExp());
+            pstmt.setString(3, shopRole.getTimelyExp());
+            pstmt.setString(4, shopRole.getDailyExp());
+            pstmt.setString(5, shopRole.getWeeklyExp());
+            pstmt.setString(6, shopRole.getMonthlyExp());
+            pstmt.setInt(7, shopRole.getLeftCount());
+            pstmt.setDouble(8, shopRole.getCoinMultiplier());
+            pstmt.setInt(9, shopRole.getPrice());
 
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            BotMain.logger.error("Error save roleshop", e);
+        }
+    }
+
+    public RoleShop loadShopRole(long roleId) {
+        String query = "SELECT * FROM shop_roles WHERE id = ?";
+
+        Role role = BotMain.getInstance().getJda().getRoleById(roleId);
+
+        try (Connection conn = this.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setLong(1, roleId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String workExp = rs.getString("work_exp");
+                    String timelyExp = rs.getString("timely_exp");
+                    String dailyExp = rs.getString("daily_exp");
+                    String weeklyExp = rs.getString("weekly_exp");
+                    String monthlyExp = rs.getString("monthly_exp");
+                    int leftCount = rs.getInt("left_count");
+                    double coinMultiplier = rs.getDouble("coin_multiplier");
+                    int price = rs.getInt("price");
+
+                    return new RoleShop(workExp, timelyExp, dailyExp, weeklyExp, monthlyExp, leftCount, coinMultiplier, price, role);
+                }
+            }
+        } catch (SQLException e) {
+            BotMain.logger.error("Error load shoprole", e);
+        }
+        return new RoleShop("x1", "x1", "x1", "x1", "x1", 0, 1, 1, role);
+    }
+
+    public void deleteRoleShopById(long roleId) {
+        String sql = "DELETE FROM shop_roles WHERE id = ?";
+        try (Connection conn = this.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setLong(1, roleId);
+
+            pstmt.executeUpdate();
+        } catch (Exception e) {
+            BotMain.logger.error("Error delete shoprole", e);
+        }
+    }
 
     public Connection getConnection() throws SQLException {
         return dataSource.getConnection();

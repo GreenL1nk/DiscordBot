@@ -20,9 +20,10 @@ public class EditRoleButton extends ArgButton {
 
         TextInput price = TextInput.create("roleshop-price", "Цена", TextInputStyle.SHORT).setRequired(true).build();
         TextInput count = TextInput.create("roleshop-count", "Наличие", TextInputStyle.SHORT).setRequired(true).build();
+        TextInput multiplier = TextInput.create("roleshop-multiplier", "Множитель", TextInputStyle.SHORT).setRequired(false).build();
 
         Modal modal = Modal.create("roleshop-" + id, "Перейти дальше, к редактированию")
-                .addComponents(ActionRow.of(price), ActionRow.of(count))
+                .addComponents(ActionRow.of(price), ActionRow.of(count), ActionRow.of(multiplier))
                 .build();
 
         event.replyModal(modal).queue();

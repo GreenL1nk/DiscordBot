@@ -15,10 +15,10 @@ public class RoleShop {
     String monthlyExp;
     Role role;
     int leftCount;
-    int coinMultiplier;
+    double coinMultiplier;
     int price;
 
-    public RoleShop(String workExp, String timelyExp, String dailyExp, String weeklyExp, String monthlyExp, int leftCount, int coinMultiplier, int price, Role role) {
+    public RoleShop(String workExp, String timelyExp, String dailyExp, String weeklyExp, String monthlyExp, int leftCount, double coinMultiplier, int price, Role role) {
         this.workExp = workExp;
         this.timelyExp = timelyExp;
         this.dailyExp = dailyExp;
@@ -58,7 +58,7 @@ public class RoleShop {
         return leftCount;
     }
 
-    public int getCoinMultiplier() {
+    public double getCoinMultiplier() {
         return coinMultiplier;
     }
 
@@ -94,7 +94,7 @@ public class RoleShop {
         this.leftCount = leftCount;
     }
 
-    public void setCoinMultiplier(int coinMultiplier) {
+    public void setCoinMultiplier(double coinMultiplier) {
         this.coinMultiplier = coinMultiplier;
     }
 

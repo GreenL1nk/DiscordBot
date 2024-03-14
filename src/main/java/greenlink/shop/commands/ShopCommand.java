@@ -111,7 +111,6 @@ public class ShopCommand extends SlashCommand {
         catch (Exception e) {
             BotMain.logger.error("", e);
         }
-
     }
 
     public ShopCommand() {

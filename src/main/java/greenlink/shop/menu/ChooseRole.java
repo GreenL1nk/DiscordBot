@@ -2,16 +2,30 @@ package greenlink.shop.menu;
 
 import global.config.Config;
 import global.selectmenus.ArgSelectMenu;
+import greenlink.databse.DatabaseConnector;
+import greenlink.shop.RoleShop;
 import greenlink.shop.commands.SettingCommand;
 import greenlink.shop.commands.ShopCommand;
+import greenlink.shop.modals.EditRoleShop;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import org.jetbrains.annotations.NotNull;
+
+import java.awt.*;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author t.me/GreenL1nk
@@ -32,27 +46,59 @@ public class ChooseRole extends ArgSelectMenu {
             String s = event.getValues().get(0);
             String nextPage = s.substring(s.indexOf("page-"));
 
-            event.deferEdit().queue(hook -> hook.editOriginalComponents(SettingCommand.getRoleSelectMenu(ShopCommand.rolesShop, Integer.parseInt(nextPage))).queue());
+            event.deferEdit().queue(hook -> hook.editOriginalComponents(SettingCommand.getRoleSelectMenu(ShopCommand.rolesShop, Integer.parseInt(nextPage), guild.getRoles())).queue());
         }
         else {
-            Role role = guild.getRoleById(event.getValues().get(0));
-            if (role == null) return;
+            long id = Long.parseLong(event.getValues().get(0));
 
-            TextInput price = TextInput.create("roleshop-price", "Цена", TextInputStyle.SHORT).setRequired(true).build();
-            TextInput count = TextInput.create("roleshop-count", "Наличие", TextInputStyle.SHORT).setRequired(true).build();
-            TextInput multiplier = TextInput.create("roleshop-multiplier", "Множитель", TextInputStyle.SHORT).setRequired(false).setPlaceholder("1").build();
+            RoleShop roleShop = EditRoleShop.cacheRole.stream().filter(rs -> rs.getRole().getIdLong() == id).findFirst().orElse(null);
+            if (roleShop == null) {
+                roleShop = DatabaseConnector.getInstance().loadShopRole(id);
+                EditRoleShop.cacheRole.add(roleShop);
+            }
 
-            Modal modal = Modal.create("roleshop-" + role.getIdLong(), "Перейти дальше, к редактированию")
-                    .addComponents(ActionRow.of(price), ActionRow.of(count), ActionRow.of(multiplier))
-                    .build();
+            List<Button> buttons = new ArrayList<>();
 
-            event.replyModal(modal).queue();
+            buttons.add(Button.of(ButtonStyle.SECONDARY, "roleshoprequirement-" + id, "Отредактировать цену и кол-во"));
+            buttons.add(Button.of(ButtonStyle.SECONDARY, "roleshopboosts-" + id, "Отредактировать бусты"));
+            buttons.add(Button.of(ButtonStyle.SUCCESS, "roleshopsave-" + id, "Сохранить и добавить в магазин"));
+            buttons.add(Button.of(ButtonStyle.DANGER, "roleshopdelete-" + id, "Удалить из магазина")
+                    .withDisabled(ShopCommand.rolesShop.stream().anyMatch(rs -> rs.getRole().getIdLong() == id)));
+
+            RoleShop finalRoleShop = roleShop;
+            event.deferReply().queue(reply -> {
+                reply.editOriginalComponents(Collections.singleton(ActionRow.of(buttons))).setEmbeds(getEmbedBuilder(finalRoleShop)).queue();
+            });
         }
     }
 
     @Override
     public String getMenuID() {
         return "chooseroleshop";
+    }
+
+    @NotNull
+    public static MessageEmbed getEmbedBuilder(RoleShop roleShop) {
+        EmbedBuilder embedBuilder = new EmbedBuilder();
+        embedBuilder.setColor(Color.decode("#a48ea2"));
+
+        embedBuilder.addField("Редактирование роли | ", String.format("""
+                * <@&%d>
+                * Цена: **%d**
+                * Наличие: **%d**
+                * Множитель: **x%d**""", roleShop.getRole().getIdLong(), roleShop.getPrice(), roleShop.getLeftCount(), roleShop.getCoinMultiplier()), true);
+
+        embedBuilder.addField("Бусты", String.format("""
+                        * /work: **%s**
+                        * /timely: **%s**
+                        * /daily: **%s**
+                        * /weekly: **%s**
+                        * /monthly: **%s**"""
+                , roleShop.getWorkExp(), roleShop.getTimelyExp(),
+                roleShop.getDailyExp(), roleShop.getWeeklyExp(), roleShop.getMonthlyExp()), true);
+
+        embedBuilder.setTimestamp(Instant.now());
+        return embedBuilder.build();
     }
 
     @Override

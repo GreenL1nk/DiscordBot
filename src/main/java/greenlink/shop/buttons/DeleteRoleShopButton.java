@@ -1,6 +1,7 @@
 package greenlink.shop.buttons;
 
 import global.buttons.ArgButton;
+import greenlink.databse.DatabaseConnector;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 /**
@@ -13,6 +14,7 @@ public class DeleteRoleShopButton extends ArgButton {
         if (!isAdmin(event.getMember(), event)) return;
 
         long id = Long.parseLong(getArgs(event)[0]);
+        DatabaseConnector.getInstance().deleteRoleShopById(id);
     }
 
     @Override

@@ -27,6 +27,7 @@ import greenlink.music.buttons.*;
 import greenlink.music.commands.PlayCommand;
 import greenlink.music.selectmenus.SelectTrackMenu;
 import greenlink.music.selectmenus.SetTrackMenu;
+import greenlink.shop.buttons.DeleteRoleShopButton;
 import greenlink.shop.buttons.EditRoleBoostsButton;
 import greenlink.shop.buttons.EditRoleButton;
 import greenlink.shop.buttons.SaveRoleShopButton;
@@ -140,7 +141,8 @@ public class BotMain {
                 new LBUserPage(),
                 new EditRoleButton(),
                 new EditRoleBoostsButton(),
-                new SaveRoleShopButton()
+                new SaveRoleShopButton(),
+                new DeleteRoleShopButton()
         );
     }
 

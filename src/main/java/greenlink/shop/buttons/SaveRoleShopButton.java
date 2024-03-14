@@ -1,6 +1,9 @@
 package greenlink.shop.buttons;
 
 import global.buttons.ArgButton;
+import greenlink.databse.DatabaseConnector;
+import greenlink.shop.RoleShop;
+import greenlink.shop.modals.EditRoleShop;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 /**
@@ -13,6 +16,11 @@ public class SaveRoleShopButton extends ArgButton {
         if (!isAdmin(event.getMember(), event)) return;
 
         long id = Long.parseLong(getArgs(event)[0]);
+
+        RoleShop roleShop = EditRoleShop.cacheRole.stream().filter(rs -> rs.getRole().getIdLong() == id).findFirst().orElse(null);
+        if (roleShop == null) return;
+
+        DatabaseConnector.getInstance().saveRoleShop(roleShop);
     }
 
     @Override
