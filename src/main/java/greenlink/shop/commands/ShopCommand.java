@@ -49,12 +49,13 @@ public class ShopCommand extends SlashCommand {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setColor(Color.decode("#a48ea2"));
 
-        ArrayList<MessageEmbed.Field> fields = getSortedRoles().get(page);
+        HashMap<Integer, ArrayList<MessageEmbed.Field>> sortedRoles = getSortedRoles();
+        ArrayList<MessageEmbed.Field> fields = sortedRoles.get(page);
 
         embedBuilder.addField("Магазин ролей", "Выберите роль, которую хотите купить", false);
         if (fields != null) embedBuilder.getFields().addAll(fields);
 
-        embedBuilder.setFooter("Страница " + page + " из " + "дописать кол-во страниц");
+        embedBuilder.setFooter("Страница " + page + " из " + sortedRoles.size());
         embedBuilder.setTimestamp(Instant.now());
         return embedBuilder.build();
     }

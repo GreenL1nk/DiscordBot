@@ -1,6 +1,5 @@
 package greenlink.shop.modals;
 
-import global.BotMain;
 import global.config.Config;
 import global.modals.ArgModal;
 import greenlink.databse.DatabaseConnector;
@@ -82,7 +81,7 @@ public class EditRoleShop extends ArgModal {
                 * <@&%d>
                 * Цена: **%d**
                 * Наличие: **%d**
-                * Множитель: **x%d**""", roleShop.getRole().getIdLong(), roleShop.getPrice(), roleShop.getLeftCount(), roleShop.getCoinMultiplier()), true);
+                * Множитель: **x%s**""", roleShop.getRole().getIdLong(), roleShop.getPrice(), roleShop.getLeftCount(), roleShop.getCoinMultiplier()), true);
 
         embedBuilder.addField("Бусты", String.format("""
                         * /work: **%s**

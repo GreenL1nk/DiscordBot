@@ -479,7 +479,17 @@ public class DatabaseConnector {
     }
 
     public void saveRoleShop(RoleShop shopRole) {
-        String query = "INSERT INTO shop_roles (id, work_exp, timely_exp, daily_exp, weekly_exp, monthly_exp, left_count, coin_multiplier, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String query = "INSERT INTO shop_roles (id, work_exp, timely_exp, daily_exp, weekly_exp, monthly_exp, left_count, coin_multiplier, price) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE " +
+                "work_exp = VALUES(work_exp), " +
+                "timely_exp = VALUES(timely_exp), " +
+                "daily_exp = VALUES(daily_exp), " +
+                "weekly_exp = VALUES(weekly_exp), " +
+                "monthly_exp = VALUES(monthly_exp), " +
+                "left_count = VALUES(left_count), " +
+                "coin_multiplier = VALUES(coin_multiplier), " +
+                "price = VALUES(price)";
         try (Connection conn = this.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setLong(1, shopRole.getRole().getIdLong());
@@ -497,7 +507,6 @@ public class DatabaseConnector {
             BotMain.logger.error("Error save roleshop", e);
         }
     }
-
     public RoleShop loadShopRole(long roleId) {
         String query = "SELECT * FROM shop_roles WHERE id = ?";
 

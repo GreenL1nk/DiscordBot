@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,22 +54,23 @@ public class SettingCommand extends SlashCommand {
     }
 
     public static ActionRow getRoleSelectMenu(List<RoleShop> roles, int page, List<Role> guildRoles) {
-        List<Role> collect = guildRoles.stream().filter(role -> roles.stream().noneMatch(roleShop -> role.getIdLong() == roleShop.getRole().getIdLong())).toList();
+        List<RoleShop> copyRoles = new ArrayList<>(roles);
+        List<Role> collect = guildRoles.stream().filter(role -> copyRoles.stream().noneMatch(roleShop -> role.getIdLong() == roleShop.getRole().getIdLong())).toList();
         collect.forEach(role -> {
-            roles.add(new RoleShop("x1", "x1", "x1", "x1", "x1", 0, 1, 1, role));
+            copyRoles.add(new RoleShop("x1", "x1", "x1", "x1", "x1", 0, 1, 1, role));
         });
         int nextPage = page + 1;
         page -= 1;
         int startIndex = page * 23;
-        int endIndex = Math.min(startIndex + 23, roles.size());
-        List<RoleShop> rolesOnPage = roles.subList(startIndex, endIndex);
+        int endIndex = Math.min(startIndex + 23, copyRoles.size());
+        List<RoleShop> rolesOnPage = copyRoles.subList(startIndex, endIndex);
 
         List<SelectOption> options = rolesOnPage.stream()
                 .filter(role -> !role.getRole().isPublicRole())
                 .map(role -> SelectOption.of(role.getRole().getName(), role.getRole().getId()))
                 .collect(Collectors.toList());
 
-        if (endIndex < roles.size()) {
+        if (endIndex < copyRoles.size()) {
             options.add(SelectOption.of("Перейти на следующую страницу", "page-" + nextPage));
         }
         if (page > 0) {

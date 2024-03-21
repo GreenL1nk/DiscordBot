@@ -15,6 +15,8 @@ public class DeleteRoleShopButton extends ArgButton {
 
         long id = Long.parseLong(getArgs(event)[0]);
         DatabaseConnector.getInstance().deleteRoleShopById(id);
+
+        event.deferReply(true).setContent("Роль успешно удалена из магазина и базы").queue();
     }
 
     @Override

@@ -86,7 +86,7 @@ public class ChooseRole extends ArgSelectMenu {
                 * <@&%d>
                 * Цена: **%d**
                 * Наличие: **%d**
-                * Множитель: **x%d**""", roleShop.getRole().getIdLong(), roleShop.getPrice(), roleShop.getLeftCount(), roleShop.getCoinMultiplier()), true);
+                * Множитель: **x%s**""", roleShop.getRole().getIdLong(), roleShop.getPrice(), roleShop.getLeftCount(), roleShop.getCoinMultiplier()), true);
 
         embedBuilder.addField("Бусты", String.format("""
                         * /work: **%s**

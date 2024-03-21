@@ -3,6 +3,7 @@ package greenlink.shop.buttons;
 import global.buttons.ArgButton;
 import greenlink.databse.DatabaseConnector;
 import greenlink.shop.RoleShop;
+import greenlink.shop.commands.ShopCommand;
 import greenlink.shop.modals.EditRoleShop;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
@@ -17,10 +18,14 @@ public class SaveRoleShopButton extends ArgButton {
 
         long id = Long.parseLong(getArgs(event)[0]);
 
-        RoleShop roleShop = EditRoleShop.cacheRole.stream().filter(rs -> rs.getRole().getIdLong() == id).findFirst().orElse(null);
-        if (roleShop == null) return;
+        RoleShop toSave = EditRoleShop.cacheRole.stream().filter(rs -> rs.getRole().getIdLong() == id).findFirst().orElse(null);
+        if (toSave == null) return;
 
-        DatabaseConnector.getInstance().saveRoleShop(roleShop);
+        DatabaseConnector.getInstance().saveRoleShop(toSave);
+        RoleShop oldRole = ShopCommand.rolesShop.stream().filter(rs -> rs.getRole().getIdLong() == toSave.getRole().getIdLong()).findFirst().orElse(null);
+        ShopCommand.rolesShop.remove(oldRole);
+        ShopCommand.rolesShop.add(toSave);
+        event.deferReply(true).setContent("Роль успешно сохранена в магазин и базу").queue();
     }
 
     @Override
