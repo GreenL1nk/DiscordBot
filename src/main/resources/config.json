@@ -85,5 +85,9 @@
   },
   "bankFeePercent": 7.5,
   "bankFeePeriodMinutes": 10080,
-  "adminRoleId": 0
+  "adminRoleId": 0,
+  "commands": {
+    "settings": false
+  },
+  "logChannelId": 0
 }

@@ -7,6 +7,8 @@ import global.commands.SlashCommandsManager;
 import global.config.Config;
 import global.modals.ModalListener;
 import global.modals.ModalManager;
+import global.pastebin.PastebinAPI;
+import global.pastebin.SendEmbedCommand;
 import global.selectmenus.SelectMenuListener;
 import global.selectmenus.SelectMenusManager;
 import greenlink.economy.EconomyManager;
@@ -21,6 +23,7 @@ import greenlink.economy.listeners.EconomyMessageListener;
 import greenlink.economy.listeners.EconomyVoiceListener;
 import greenlink.mentions.ChooseMentionMenu;
 import greenlink.mentions.MentionManager;
+import greenlink.moderation.commands.BanCommand;
 import greenlink.music.BotLeftScheduler;
 import greenlink.music.MusicBotListener;
 import greenlink.music.buttons.*;
@@ -43,6 +46,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -107,7 +111,9 @@ public class BotMain {
                 new LeaderBoardCommand(),
                 new PayCommand(),
                 new ShopCommand(),
-                new SettingCommand()
+                new SettingCommand(),
+                new BanCommand(),
+                new SendEmbedCommand()
         );
     }
 

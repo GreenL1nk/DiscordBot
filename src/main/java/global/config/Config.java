@@ -1,6 +1,7 @@
 package global.config;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import global.BotMain;
 import global.config.configs.*;
@@ -48,6 +49,7 @@ public class Config {
     public double bankPercent;
     public double bankFeePeriodMinutes;
     public long adminRoleId;
+    public long logChannelId;
 
     private Config() {
         ensureConfigFileExists();
@@ -98,6 +100,32 @@ public class Config {
         } catch (URISyntaxException e) {
             BotMain.logger.error("", e);
         }
+    }
+
+    public Object getValueFromJson(String variableName) {
+        try {
+            JsonElement jsonElement = Utils.readConfig(Path.of(BotMain.class.getProtectionDomain().getCodeSource().getLocation().toURI()), CONFIG_FILE_NAME);
+
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+
+                if (jsonObject.has("commands")) {
+                    JsonObject commandsObject = jsonObject.getAsJsonObject("commands");
+
+                    if (commandsObject.has(variableName)) {
+                        JsonElement valueElement = commandsObject.get(variableName);
+
+                        if (valueElement.isJsonPrimitive() && valueElement.getAsJsonPrimitive().isBoolean()) {
+                            return valueElement.getAsBoolean();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     public String getToken() {
@@ -182,6 +210,10 @@ public class Config {
 
     public long getAdminRoleId() {
         return adminRoleId;
+    }
+
+    public long getLogChannelId() {
+        return logChannelId;
     }
 
     public static synchronized Config getInstance() {
