@@ -6,11 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.utils.data.DataObject;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class PastebinAPI {
@@ -23,14 +26,15 @@ public class PastebinAPI {
             connection.setRequestMethod("GET");
             int responseCode = connection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_OK) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
-            }
-            reader.close();
-            return parsePastebinFromJson(filterEmbedsAndContent(response.toString()));
+                InputStream inputStream = connection.getInputStream();
+                ByteArrayOutputStream result = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = inputStream.read(buffer)) != -1) {
+                    result.write(buffer, 0, length);
+                }
+                String responseString = result.toString(StandardCharsets.UTF_8).replaceAll("id", "custom_id");
+            return parsePastebinFromJson(filterEmbedsAndContent(responseString));
             } else {
                 return null;
             }
@@ -83,7 +87,7 @@ public class PastebinAPI {
             if (rootNode.isObject()) {
                 ObjectNode objectNode = (ObjectNode) rootNode;
 
-                objectNode.retain("embeds", "content");
+                objectNode.retain("embeds", "content", "components");
 
                 return mapper.writeValueAsString(objectNode);
             }
@@ -108,7 +112,16 @@ public class PastebinAPI {
             }
         }
 
-        return new Pastebin(content, embeds);
+        ArrayList<ActionRow> components = new ArrayList<>();
+        JsonNode componentsNode = rootNode.get("components");
+        if (componentsNode.isArray()) {
+            for (JsonNode componentNode : componentsNode) {
+                DataObject dataObject = fromJson(mapper.writeValueAsString(componentNode));
+                components.add(ActionRow.fromData(dataObject));
+            }
+        }
+
+        return new Pastebin(content, embeds, components);
     }
 
     private static DataObject fromJson(String json) {

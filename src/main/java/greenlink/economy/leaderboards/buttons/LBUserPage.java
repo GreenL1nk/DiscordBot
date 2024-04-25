@@ -1,6 +1,5 @@
 package greenlink.economy.leaderboards.buttons;
 
-import global.BotMain;
 import global.buttons.ArgButton;
 import greenlink.economy.EconomyManager;
 import greenlink.economy.EconomyUser;

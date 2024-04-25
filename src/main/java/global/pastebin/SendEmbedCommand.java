@@ -2,13 +2,13 @@ package global.pastebin;
 
 import global.commands.SlashCommand;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.internal.entities.emoji.UnicodeEmojiImpl;
 
 public class SendEmbedCommand extends SlashCommand {
     @Override
@@ -21,7 +21,10 @@ public class SendEmbedCommand extends SlashCommand {
 
         Pastebin pastebin = PastebinAPI.getPaste(pasteId);
         if (pastebin == null) return;
-        MessageCreateBuilder messageCreateBuilder = new MessageCreateBuilder().setEmbeds(pastebin.embeds()).setContent(pastebin.content());
+        MessageCreateBuilder messageCreateBuilder = new MessageCreateBuilder()
+                .setEmbeds(pastebin.embeds())
+                .setContent(pastebin.content())
+                .setComponents(pastebin.components());
         textChannel.sendMessage(messageCreateBuilder.build()).queue(message -> {
             event.deferReply().setEphemeral(true).setContent(String.format("Сообщение успешно отправлено в <#%s>", textChannel.getId())).queue();
         });

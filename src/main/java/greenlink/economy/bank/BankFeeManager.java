@@ -1,7 +1,5 @@
 package greenlink.economy.bank;
 
-import global.BotMain;
-import global.commands.ICommand;
 import greenlink.databse.DatabaseConnector;
 import greenlink.economy.EconomyManager;
 import greenlink.economy.EconomyUser;

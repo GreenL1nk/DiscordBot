@@ -7,7 +7,6 @@ import global.commands.SlashCommandsManager;
 import global.config.Config;
 import global.modals.ModalListener;
 import global.modals.ModalManager;
-import global.pastebin.PastebinAPI;
 import global.pastebin.SendEmbedCommand;
 import global.selectmenus.SelectMenuListener;
 import global.selectmenus.SelectMenusManager;
@@ -24,6 +23,11 @@ import greenlink.economy.listeners.EconomyVoiceListener;
 import greenlink.mentions.ChooseMentionMenu;
 import greenlink.mentions.MentionManager;
 import greenlink.moderation.commands.BanCommand;
+import greenlink.moderation.events.ChangeNameEvent;
+import greenlink.moderation.events.DeleteMessageEvent;
+import greenlink.moderation.events.EditMessageEvent;
+import greenlink.moderation.events.role.RoleCreateEvent;
+import greenlink.moderation.events.role.RoleUpdateEvent;
 import greenlink.music.BotLeftScheduler;
 import greenlink.music.MusicBotListener;
 import greenlink.music.buttons.*;
@@ -46,7 +50,6 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -73,9 +76,14 @@ public class BotMain {
                         new BotLeftScheduler(),
                         new MusicBotListener(),
                         new EconomyVoiceListener(),
-                        new EconomyMessageListener()
+                        new EconomyMessageListener(),
+                        new DeleteMessageEvent(),
+                        new EditMessageEvent(),
+                        new ChangeNameEvent(),
+                        new RoleUpdateEvent(),
+                        new RoleCreateEvent()
                 )
-                .enableIntents(GatewayIntent.GUILD_VOICE_STATES, GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MEMBERS)
+                .enableIntents(GatewayIntent.GUILD_VOICE_STATES, GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
                 .enableCache(CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.EMOJI)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();

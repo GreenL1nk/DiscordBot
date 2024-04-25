@@ -1,9 +1,11 @@
 package greenlink.moderation.commands;
 
-import global.logger.EventLogger;
 import global.commands.SlashCommand;
+import greenlink.moderation.EventLogger;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -24,19 +26,17 @@ public class BanCommand extends SlashCommand implements EventLogger {
         if (!isAdmin(member, event)) return;
 
         Member toBan = event.getOptionsByType(OptionType.USER).get(0).getAsMember();
-        int time = event.getOptionsByType(OptionType.USER).get(1).getAsInt();
-        String reason = event.getOptionsByType(OptionType.USER).get(2).getAsString();
+        String reason = event.getOptionsByType(OptionType.USER).get(1).getAsString();
         if (toBan == null) return;
 
-//        sendLog();
+        sendLog(embedData(toBan.getId(), reason));
 
-        guild.ban(toBan, 1, TimeUnit.DAYS).queue();
+        guild.ban(toBan, 0, TimeUnit.SECONDS).queue();
     }
 
     @Override
     public void updateOptions() {
         options.add(new OptionData(OptionType.USER, "member", "Пользователь", true));
-        options.add(new OptionData(OptionType.INTEGER, "time", "Время в минутах", false));
         options.add(new OptionData(OptionType.STRING, "reason", "Причина", false));
     }
 
@@ -51,7 +51,16 @@ public class BanCommand extends SlashCommand implements EventLogger {
     }
 
     @Override
-    public void EmbedData(String... info) {
+    public MessageEmbed embedData(String... payload) {
 
+        EmbedBuilder embedBuilder = new EmbedBuilder();
+        embedBuilder.addField("",
+                String.format("""
+                        <@%s> был забанен\s
+                        Причина: `%s`
+                        """, payload[0], payload[1])
+                , false);
+
+        return embedBuilder.build();
     }
 }

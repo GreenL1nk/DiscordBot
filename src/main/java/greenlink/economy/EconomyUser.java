@@ -6,8 +6,6 @@ import global.utils.Utils;
 import greenlink.User;
 import greenlink.economy.leaderboards.LeaderBoardType;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.requests.restaction.CacheRestAction;
-import org.checkerframework.checker.units.qual.C;
 
 import java.sql.SQLException;
 import java.util.List;
