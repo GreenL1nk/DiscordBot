@@ -15,7 +15,6 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
-import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.time.Instant;
@@ -27,8 +26,6 @@ import java.util.*;
  * 23.01.2024
  */
 public class LeaderBoardCommand extends SlashCommand {
-
-    public static final HashMap<LeaderBoardType, Integer> countPage = new HashMap<>();
 
     @Override
     public void execute(SlashCommandInteractionEvent event) {
@@ -50,91 +47,96 @@ public class LeaderBoardCommand extends SlashCommand {
 
     }
 
-    @NotNull
     public static MessageEmbed getEmbedBuilder(Member member, LeaderBoardType leaderBoardType, int page) {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setColor(Color.decode("#a48ea2"));
         embedBuilder.setThumbnail(member.getGuild().getIconUrl());
 
-        ArrayList<String> strings = getSortedBoard(leaderBoardType, member).get(page);
+        List<String> strings = getSortedBoard(leaderBoardType, member, page);
         embedBuilder.setTitle("Список лидеров по " + leaderBoardType.getName() + leaderBoardType.getIcon());
         embedBuilder.addField("", String.join("\n", strings), false);
 
-        embedBuilder.setFooter("Страница " + page + " из " + countPage.get(leaderBoardType));
+        embedBuilder.setFooter("Страница " + page + " из " + getPageCount(leaderBoardType));
         embedBuilder.setTimestamp(Instant.now());
         return embedBuilder.build();
     }
 
-    public static HashMap<Integer, ArrayList<String>> getSortedBoard(LeaderBoardType leaderBoardType, Member member) {
-        int page = 1;
-        int topNumber = 1;
-        HashMap<Integer, ArrayList<String>> pages = new HashMap<>();
-        ArrayList<String> users = new ArrayList<>();
+    public static List<String> getSortedBoard(LeaderBoardType leaderBoardType, Member member, int page) {
+        List<String> users = new ArrayList<>();
+
         try {
-            ArrayList<EconomyUser> sortedUserByBoardType = EconomyManager.getInstance().getUserTop(leaderBoardType);
-            EconomyUser currentMember = sortedUserByBoardType.stream().filter(economyUser -> economyUser.getUuid() == member.getIdLong()).findFirst().orElse(null);
-            for (EconomyUser economyUser : sortedUserByBoardType) {
-                if (leaderBoardType == LeaderBoardType.ROB) {
-                    users.add(String.format("""
+            List<EconomyUser> sortedUserByBoardType = EconomyManager.getInstance().getUserTopByPage(leaderBoardType, page);
+            EconomyUser currentMember = EconomyManager.getInstance().getEconomyUser(member.getUser());
+
+            if (currentMember != null) {
+                users.add(0, String.format("<@%s>, ваша позиция в этом топе: #**%d**\n", member.getIdLong(), currentMember.getCurrentTop(leaderBoardType)));
+            }
+
+            for (int i = 0; i < 5; i++) {
+                EconomyUser economyUser = sortedUserByBoardType.get(i);
+                users.add(formatUserData((page - 1) * 5 + i + 1, economyUser, leaderBoardType));
+            }
+        } catch (Exception e) {
+            BotMain.logger.error("", e);
+        }
+
+        return users;
+    }
+
+    public static int getTotalUsersCount(LeaderBoardType leaderBoardType) {
+        try {
+            return EconomyManager.getInstance().getUserCount(leaderBoardType);
+        } catch (Exception e) {
+            BotMain.logger.error("", e);
+            return 0;
+        }
+    }
+
+    public static int getPageCount(LeaderBoardType leaderBoardType) {
+        int totalUsers = getTotalUsersCount(leaderBoardType);
+        int pageSize = 5;
+        return (int) Math.ceil((double) totalUsers / pageSize);
+    }
+
+    private static String formatUserData(int topNumber, EconomyUser economyUser, LeaderBoardType leaderBoardType) {
+        return switch (leaderBoardType) {
+            case ROB -> String.format("""
                             #**%d.** <@%d>\s
                             Попыток ограблений: **%d**\s
                             Успешных: **%d** | Провальных: **%d**\s
                             Заработано: **%d** | Потеряно **%d**""",
-                            topNumber,
-                            economyUser.getUuid() , economyUser.getTotalRobs(), economyUser.getSuccessRobs(), economyUser.getFailedRobs(),
-                            economyUser.getEarnedFromRobs(), economyUser.getLostFromRobs()));
-                }
-                if (leaderBoardType == LeaderBoardType.LEVEL) {
-                    users.add(String.format("""
+                    topNumber,
+                    economyUser.getUuid(), economyUser.getTotalRobs(), economyUser.getSuccessRobs(), economyUser.getFailedRobs(),
+                    economyUser.getEarnedFromRobs(), economyUser.getLostFromRobs());
+            case LEVEL -> String.format("""
                             #**%d.** <@%d>\s
                             Уровень: **%d**\s
                             Всего XP: **%d**""",
-                            topNumber,
-                            economyUser.getUuid() , economyUser.getCurrentLevel(), economyUser.getTotalEarnedExp()));
-                }
-                if (leaderBoardType == LeaderBoardType.MESSAGES) {
-                    users.add(String.format("""
+                    topNumber,
+                    economyUser.getUuid(), economyUser.getCurrentLevel(), economyUser.getTotalEarnedExp());
+            case MESSAGES -> String.format("""
                             #**%d.** <@%d>\s
                             Всего сообщений: **%d**""",
-                            topNumber,
-                            economyUser.getUuid() , economyUser.getTotalMessages()));
-                }
-                if (leaderBoardType == LeaderBoardType.BALANCE) {
-                    users.add(String.format("""
+                    topNumber,
+                    economyUser.getUuid(), economyUser.getTotalMessages());
+            case BALANCE -> String.format("""
                             #**%d.** <@%d>\s
                             Всего: **%d**%s\s
                             Наличные: **%d**%s | Банк: **%d**%s""",
-                            topNumber,
-                            economyUser.getUuid() , economyUser.getTotalBalance(), Config.getInstance().getIcon().getCoinIcon(),
-                            economyUser.getCashBalance(), Config.getInstance().getIcon().getCoinIcon(),
-                            economyUser.getBankBalance(), Config.getInstance().getIcon().getCoinIcon()));
-
-                }
-                if (leaderBoardType == LeaderBoardType.VOICE) {
-                    users.add(String.format("""
+                    topNumber,
+                    economyUser.getUuid(), economyUser.getTotalBalance(), Config.getInstance().getIcon().getCoinIcon(),
+                    economyUser.getCashBalance(), Config.getInstance().getIcon().getCoinIcon(),
+                    economyUser.getBankBalance(), Config.getInstance().getIcon().getCoinIcon());
+            case VOICE -> String.format("""
                             #**%d.** <@%d>\s
                             Проведено в голосовом чате: **%s**""",
-                            topNumber,
-                            economyUser.getUuid() , economyUser.getFormatVoiceTime()));
-                }
-                if (users.size() == 5 || users.size() == sortedUserByBoardType.size()) {
-                    users.add(0, String.format("<@%s>, ваша позиция в этом топе: #**%d**\n", member.getId(), sortedUserByBoardType.indexOf(currentMember) + 1));
-                    pages.put(page, users);
-                    users = new ArrayList<>();
-                    page++;
-                }
-                topNumber++;
-            }
-        }
-        catch (Exception e) {
-            BotMain.logger.error("", e);
-        }
-        countPage.put(leaderBoardType, pages.size());
-        return pages;
+                    topNumber,
+                    economyUser.getUuid(), economyUser.getFormatVoiceTime());
+        };
     }
 
     public static Collection<ActionRow> getButtons(LeaderBoardType leaderBoardType, int currentPage) {
-        Integer pages = countPage.get(leaderBoardType);
+        int pages = getPageCount(leaderBoardType);
         List<Button> buttons = new ArrayList<>();
 
         buttons.add(Button.of(ButtonStyle.SECONDARY, "lbback-" + (currentPage - 1) + "-" + leaderBoardType.name(), "", Emoji.fromUnicode("⬅️")).withDisabled(currentPage < 2));

@@ -50,6 +50,7 @@ public class Config {
     public double bankFeePeriodMinutes;
     public long adminRoleId;
     public long logChannelId;
+    public int maxCacheUserSize;
 
     private Config() {
         ensureConfigFileExists();

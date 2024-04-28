@@ -97,7 +97,7 @@ public class BotMain {
         BankFeeManager.getInstance();
         Arrays.stream(LeaderBoardType.values()).forEach(leaderBoardType -> {
             try {
-                EconomyManager.getInstance().getUserTop(leaderBoardType);
+                EconomyManager.getInstance().getUserTopByPage(leaderBoardType, 1);
             } catch (SQLException | ExecutionException e) {
                 throw new RuntimeException(e);
             }

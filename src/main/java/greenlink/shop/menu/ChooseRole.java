@@ -41,7 +41,7 @@ public class ChooseRole extends ArgSelectMenu {
 
         if (event.getValues().get(0).contains("page-")) {
             String s = event.getValues().get(0);
-            String nextPage = s.substring(s.indexOf("page-"));
+            String nextPage = s.substring(s.indexOf("page-") + 5);
 
             event.deferEdit().queue(hook -> hook.editOriginalComponents(SettingCommand.getRoleSelectMenu(ShopCommand.rolesShop, Integer.parseInt(nextPage), guild.getRoles())).queue());
         }

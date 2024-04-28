@@ -38,7 +38,7 @@ public class ChoosePageLBModal extends ArgModal {
         if (lbpage != null) {
             try {
                 int page = Integer.parseInt(lbpage.getAsString());
-                if (page <= LeaderBoardCommand.countPage.get(leaderBoardType) || page == 0) {
+                if (page <= getPageCount(leaderBoardType) || page == 0) {
                     event.deferEdit().queue(reply -> {
                         MessageEmbed embedBuilder = getEmbedBuilder(member, leaderBoardType, page);
                         Collection<ActionRow> actionRows = new ArrayList<>();
@@ -53,7 +53,7 @@ public class ChoosePageLBModal extends ArgModal {
             } catch (NumberFormatException ignored) {
             }
         }
-        event.deferReply(true).setContent("Число должно быть в диапазоне от 1 до " + LeaderBoardCommand.countPage.get(leaderBoardType)).queue();
+        event.deferReply(true).setContent("Число должно быть в диапазоне от 1 до " + getPageCount(leaderBoardType)).queue();
     }
 
     @Override

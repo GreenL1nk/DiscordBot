@@ -21,6 +21,7 @@ public class EditMessageEvent extends ListenerAdapter implements EventLogger {
     }
     @Override
     public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
+        if (event.getAuthor().isBot()) return;
         sendLog(embedData(event.getAuthor().getId(), event.getChannel().getId(), event.getMessage().getContentRaw()));
     }
 }

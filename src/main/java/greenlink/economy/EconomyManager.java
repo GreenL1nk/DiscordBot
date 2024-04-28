@@ -4,6 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import global.BotMain;
+import global.config.Config;
 import greenlink.databse.DatabaseConnector;
 import greenlink.economy.leaderboards.LeaderBoardType;
 import net.dv8tion.jda.api.entities.User;
@@ -28,10 +29,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class EconomyManager {
     private static EconomyManager instance;
     Cache<Long, EconomyUser> cache;
+    int pageSize = 5;
 
     private EconomyManager() {
         cache = CacheBuilder.newBuilder()
-                .maximumSize(100)
+                .maximumSize(Config.getInstance().maxCacheUserSize)
                 .expireAfterWrite(30, TimeUnit.MINUTES)
                 .removalListener(removalListener)
                 .build();
@@ -47,7 +49,7 @@ public class EconomyManager {
             return cache.get(user.getIdLong(), () -> DatabaseConnector.getInstance().getEconomyUser(user.getIdLong()));
         } catch (ExecutionException e) {
             BotMain.logger.warn(e.getMessage());
-            BotMain.logger.warn("Загрузка пользователя вызвало ошибку, создаём нового для " + user.getIdLong());
+            BotMain.logger.warn("Загрузка пользователя вызвало ошибку, создаём нового для {}", user.getIdLong());
             return DatabaseConnector.getInstance().getEconomyUser(user.getIdLong());
         }
     }
@@ -57,134 +59,46 @@ public class EconomyManager {
     }
 
     RemovalListener<Long, EconomyUser> removalListener = notification -> {
-        BotMain.logger.debug("User " + notification.getKey() + " removed from cache");
+        BotMain.logger.debug("User {} removed from cache", notification.getKey());
     };
 
-    public ArrayList<EconomyUser> getUserTop(LeaderBoardType leaderBoardType) throws SQLException, ExecutionException {
+    public ArrayList<EconomyUser> getUserTopByPage(LeaderBoardType leaderBoardType, int pageNumber) throws SQLException, ExecutionException {
         ArrayList<EconomyUser> economyUsers = new ArrayList<>();
         if (!DatabaseConnector.getInstance().useSQLdDB) return economyUsers;
 
-        if (leaderBoardType == LeaderBoardType.ROB) {
-            AtomicInteger loaded = new AtomicInteger();
-            try (Connection conn = DatabaseConnector.getInstance().getConnection();
-                 PreparedStatement selectStatement = conn.prepareStatement("SELECT *, (success_rob + fail_rob) AS sumTotal FROM user_stats ORDER BY sumTotal DESC")) {
-                try (ResultSet result = selectStatement.executeQuery()) {
+        int offset = (pageNumber - 1) * pageSize;
 
-                    while (result.next()) {
-                        long uuid = result.getLong("uuid");
+        String query = buildQueryForLeaderBoardTypePage(leaderBoardType, offset, pageSize);
 
-                        if (loaded.get() < 20) {
-                            economyUsers.add(cache.get(uuid, () -> {
-                                loaded.getAndDecrement();
-                                return getResultUser(uuid);
-                            }));
-                        }
-                        else {
-                            economyUsers.add(getResultUser(uuid));
-                        }
+        AtomicInteger loaded = new AtomicInteger();
+        try (Connection conn = DatabaseConnector.getInstance().getConnection();
+             PreparedStatement selectStatement = conn.prepareStatement(query)) {
+            try (ResultSet result = selectStatement.executeQuery()) {
+                while (result.next()) {
+                    long uuid = result.getLong("uuid");
 
-                    }
-                }
-            }
-        }
-
-        if (leaderBoardType == LeaderBoardType.VOICE) {
-            AtomicInteger loaded = new AtomicInteger();
-            try (Connection conn = DatabaseConnector.getInstance().getConnection();
-                 PreparedStatement selectStatement = conn.prepareStatement("SELECT * FROM user_stats ORDER BY voice_time DESC")) {
-                try (ResultSet result = selectStatement.executeQuery()) {
-
-                    while (result.next()) {
-                        long uuid = result.getLong("uuid");
-
-                        if (loaded.get() < 20) {
-                            economyUsers.add(cache.get(uuid, () -> {
-                                loaded.getAndDecrement();
-                                return getResultUser(uuid);
-                            }));
-                        }
-                        else {
-                            economyUsers.add(getResultUser(uuid));
-                        }
-
-                    }
-                }
-            }
-        }
-
-        if (leaderBoardType == LeaderBoardType.MESSAGES) {
-            AtomicInteger loaded = new AtomicInteger();
-            try (Connection conn = DatabaseConnector.getInstance().getConnection();
-                 PreparedStatement selectStatement = conn.prepareStatement("SELECT * FROM user_stats ORDER BY total_message DESC")) {
-                try (ResultSet result = selectStatement.executeQuery()) {
-
-                    while (result.next()) {
-                        long uuid = result.getLong("uuid");
-
-                        if (loaded.get() < 20) {
-                            economyUsers.add(cache.get(uuid, () -> {
-                                loaded.getAndDecrement();
-                                return getResultUser(uuid);
-                            }));
-                        }
-                        else {
-                            economyUsers.add(getResultUser(uuid));
-                        }
-
-                    }
-                }
-            }
-        }
-
-        if (leaderBoardType == LeaderBoardType.LEVEL) {
-            AtomicInteger loaded = new AtomicInteger();
-            try (Connection conn = DatabaseConnector.getInstance().getConnection();
-                 PreparedStatement selectStatement = conn.prepareStatement("SELECT * FROM users_economy ORDER BY level DESC")) {
-                try (ResultSet result = selectStatement.executeQuery()) {
-
-                    while (result.next()) {
-                        long uuid = result.getLong("uuid");
-
-                        if (loaded.get() < 20) {
-                            economyUsers.add(cache.get(uuid, () -> {
-                                loaded.getAndDecrement();
-                                return getResultUser(uuid);
-                            }));
-                        }
-                        else {
-                            economyUsers.add(getResultUser(uuid));
-                        }
-
-                    }
-                }
-            }
-        }
-
-        if (leaderBoardType == LeaderBoardType.BALANCE) {
-            AtomicInteger loaded = new AtomicInteger();
-            try (Connection conn = DatabaseConnector.getInstance().getConnection();
-                 PreparedStatement selectStatement = conn.prepareStatement("SELECT *, (bank + coins) AS sumTotal FROM users_economy ORDER BY sumTotal DESC")) {
-                try (ResultSet result = selectStatement.executeQuery()) {
-
-                    while (result.next()) {
-                        long uuid = result.getLong("uuid");
-
-                        if (loaded.get() < 20) {
-                            economyUsers.add(cache.get(uuid, () -> {
-                                loaded.getAndDecrement();
-                                return getResultUser(uuid);
-                            }));
-                        }
-                        else {
-                            economyUsers.add(getResultUser(uuid));
-                        }
-
+                    if (loaded.get() < pageSize) {
+                        economyUsers.add(cache.get(uuid, () -> {
+                            incrementAndGet(loaded);
+                            return getResultUser(uuid);
+                        }));
+                    } else {
+                        economyUsers.add(getResultUser(uuid));
                     }
                 }
             }
         }
 
         return economyUsers;
+    }
+
+    private String buildQueryForLeaderBoardTypePage(LeaderBoardType leaderBoardType, int offset, int pageSize) {
+        String baseQuery = buildQueryForLeaderBoardType(leaderBoardType);
+        return baseQuery + " LIMIT " + pageSize + " OFFSET " + offset;
+    }
+
+    private synchronized void incrementAndGet(AtomicInteger counter) {
+        counter.getAndIncrement();
     }
 
     private CacheRestAction<User> getUser(long uuid) {
@@ -198,6 +112,66 @@ public class EconomyManager {
     private EconomyUser getResultUser(long uuid) {
         return DatabaseConnector.getInstance().getEconomyUser(uuid);
     }
+
+    private String buildQueryForLeaderBoardType(LeaderBoardType leaderBoardType) {
+        return switch (leaderBoardType) {
+            case ROB -> "SELECT *, (success_rob + fail_rob) AS sumTotal FROM user_stats ORDER BY sumTotal DESC";
+            case VOICE -> "SELECT * FROM user_stats ORDER BY voice_time DESC";
+            case MESSAGES -> "SELECT * FROM user_stats ORDER BY total_message DESC";
+            case LEVEL -> "SELECT * FROM users_economy ORDER BY level DESC";
+            case BALANCE -> "SELECT *, (bank + coins) AS sumTotal FROM users_economy ORDER BY sumTotal DESC";
+        };
+    }
+
+    public int getUserCount(LeaderBoardType leaderBoardType) throws SQLException {
+        int userCount = 0;
+        if (!DatabaseConnector.getInstance().useSQLdDB) return userCount;
+
+        String query = buildCountQueryForLeaderBoardType(leaderBoardType);
+
+        try (Connection conn = DatabaseConnector.getInstance().getConnection();
+             PreparedStatement selectStatement = conn.prepareStatement(query);
+             ResultSet result = selectStatement.executeQuery()) {
+            if (result.next()) {
+                userCount = result.getInt(1);
+            }
+        }
+
+        return userCount;
+    }
+
+    private String buildCountQueryForLeaderBoardType(LeaderBoardType leaderBoardType) {
+        return switch (leaderBoardType) {
+            case ROB, MESSAGES, VOICE -> "SELECT COUNT(*) FROM user_stats";
+            case LEVEL, BALANCE -> "SELECT COUNT(*) FROM users_economy";
+        };
+    }
+
+    public int getCurrentUserRank(LeaderBoardType leaderBoardType, long userId) throws SQLException {
+        String query = buildQueryForCurrentUserRank(leaderBoardType);
+        int rank = -1;
+        try (Connection conn = DatabaseConnector.getInstance().getConnection();
+             PreparedStatement selectStatement = conn.prepareStatement(query)) {
+            selectStatement.setLong(1, userId);
+            try (ResultSet result = selectStatement.executeQuery()) {
+                if (result.next()) {
+                    rank = result.getInt(result.findColumn("position"));
+                }
+            }
+        }
+        return rank;
+    }
+
+    private String buildQueryForCurrentUserRank(LeaderBoardType leaderBoardType) {
+        return switch (leaderBoardType) {
+            case ROB -> "SELECT *, (SELECT COUNT(*) FROM user_stats AS x WHERE success_rob + fail_rob > user_stats.success_rob + user_stats.fail_rob) + 1 AS position FROM user_stats WHERE uuid = ?";
+            case VOICE -> "SELECT *, (SELECT COUNT(*) FROM user_stats AS x WHERE voice_time > user_stats.voice_time) + 1 AS position FROM user_stats WHERE uuid = ?";
+            case MESSAGES -> "SELECT *, (SELECT COUNT(*) FROM user_stats AS x WHERE total_message > user_stats.total_message) + 1 AS position FROM user_stats WHERE uuid = ?";
+            case LEVEL -> "SELECT *, (SELECT COUNT(*) FROM users_economy AS x WHERE level > users_economy.level) + 1 AS position FROM users_economy WHERE uuid = ?";
+            case BALANCE -> "SELECT *, (SELECT COUNT(*) FROM users_economy AS x WHERE bank + coins > users_economy.bank + users_economy.coins) + 1 AS position FROM users_economy WHERE uuid = ?";
+        };
+    }
+
 
     public static synchronized EconomyManager getInstance() {
         if (instance == null) {

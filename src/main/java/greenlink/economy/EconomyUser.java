@@ -220,8 +220,8 @@ public class EconomyUser extends User {
 
     public int getCurrentTop(LeaderBoardType leaderBoardType) {
         try {
-            return EconomyManager.getInstance().getUserTop(leaderBoardType).indexOf(this) + 1;
-        } catch (SQLException | ExecutionException e) {
+            return EconomyManager.getInstance().getCurrentUserRank(leaderBoardType, getUuid());
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }

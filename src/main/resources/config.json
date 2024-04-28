@@ -89,5 +89,6 @@
   "commands": {
     "settings": false
   },
-  "logChannelId": 0
+  "logChannelId": 0,
+  "maxCacheUserSize": 100
 }
