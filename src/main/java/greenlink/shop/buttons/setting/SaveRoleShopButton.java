@@ -1,10 +1,12 @@
-package greenlink.shop.buttons;
+package greenlink.shop.buttons.setting;
 
+import global.BotMain;
 import global.buttons.ArgButton;
 import greenlink.databse.DatabaseConnector;
 import greenlink.shop.RoleShop;
 import greenlink.shop.commands.ShopCommand;
 import greenlink.shop.modals.EditRoleShop;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 /**
@@ -20,6 +22,10 @@ public class SaveRoleShopButton extends ArgButton {
 
         RoleShop toSave = EditRoleShop.cacheRole.stream().filter(rs -> rs.getRole().getIdLong() == id).findFirst().orElse(null);
         if (toSave == null) return;
+
+        if (!event.getGuild().getMemberById(BotMain.getInstance().getJda().getSelfUser().getId()).canInteract(toSave.getRole())) {
+            event.deferReply(true).setContent(String.format("бот не сможет присвоить роль - <@&%s>, так как она выше по иерархии", toSave.getRole().getId())).queue();
+        }
 
         DatabaseConnector.getInstance().saveRoleShop(toSave);
         RoleShop oldRole = ShopCommand.rolesShop.stream().filter(rs -> rs.getRole().getIdLong() == toSave.getRole().getIdLong()).findFirst().orElse(null);

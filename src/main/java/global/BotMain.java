@@ -26,6 +26,7 @@ import greenlink.moderation.commands.BanCommand;
 import greenlink.moderation.events.ChangeNameEvent;
 import greenlink.moderation.events.DeleteMessageEvent;
 import greenlink.moderation.events.EditMessageEvent;
+import greenlink.moderation.events.ReceivedMessageEvent;
 import greenlink.moderation.events.role.RoleCreateEvent;
 import greenlink.moderation.events.role.RoleUpdateEvent;
 import greenlink.music.BotLeftScheduler;
@@ -34,13 +35,16 @@ import greenlink.music.buttons.*;
 import greenlink.music.commands.PlayCommand;
 import greenlink.music.selectmenus.SelectTrackMenu;
 import greenlink.music.selectmenus.SetTrackMenu;
-import greenlink.shop.buttons.DeleteRoleShopButton;
-import greenlink.shop.buttons.EditRoleBoostsButton;
-import greenlink.shop.buttons.EditRoleButton;
-import greenlink.shop.buttons.SaveRoleShopButton;
+import greenlink.shop.buttons.setting.DeleteRoleShopButton;
+import greenlink.shop.buttons.setting.EditRoleBoostsButton;
+import greenlink.shop.buttons.setting.EditRoleButton;
+import greenlink.shop.buttons.setting.SaveRoleShopButton;
+import greenlink.shop.buttons.shop.BuyRoleButton;
+import greenlink.shop.buttons.shop.ShiftingRoleButton;
 import greenlink.shop.commands.SettingCommand;
 import greenlink.shop.commands.ShopCommand;
-import greenlink.shop.menu.ChooseRole;
+import greenlink.shop.menu.SettingChooseRole;
+import greenlink.shop.menu.ShopChooseRole;
 import greenlink.shop.modals.EditRoleShop;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -81,9 +85,11 @@ public class BotMain {
                         new EditMessageEvent(),
                         new ChangeNameEvent(),
                         new RoleUpdateEvent(),
-                        new RoleCreateEvent()
+                        new RoleCreateEvent(),
+                        new ReceivedMessageEvent()
                 )
-                .enableIntents(GatewayIntent.GUILD_VOICE_STATES, GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+                .enableIntents(GatewayIntent.GUILD_VOICE_STATES, GatewayIntent.GUILD_PRESENCES,
+                        GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MESSAGES)
                 .enableCache(CacheFlag.VOICE_STATE, CacheFlag.ONLINE_STATUS, CacheFlag.EMOJI)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
@@ -131,7 +137,8 @@ public class BotMain {
                 new SetTrackMenu(),
                 new ChooseMentionMenu(),
                 new ChooseBoardTypeMenu(),
-                new ChooseRole()
+                new SettingChooseRole(),
+                new ShopChooseRole()
         );
     }
 
@@ -156,7 +163,9 @@ public class BotMain {
                 new EditRoleButton(),
                 new EditRoleBoostsButton(),
                 new SaveRoleShopButton(),
-                new DeleteRoleShopButton()
+                new DeleteRoleShopButton(),
+                new ShiftingRoleButton(),
+                new BuyRoleButton()
         );
     }
 

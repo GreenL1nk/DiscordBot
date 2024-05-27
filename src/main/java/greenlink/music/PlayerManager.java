@@ -7,6 +7,7 @@ import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import global.BotMain;
 import global.config.Config;
 import global.utils.Utils;
@@ -47,7 +48,9 @@ public class PlayerManager {
         this.musicManagers = new HashMap<>();
         this.audioPlayerManager = new DefaultAudioPlayerManager();
 
-        AudioSourceManagers.registerRemoteSources(this.audioPlayerManager);
+        YoutubeAudioSourceManager youtubeSourceManager = new YoutubeAudioSourceManager();
+
+        this.audioPlayerManager.registerSourceManager(youtubeSourceManager);
         AudioSourceManagers.registerLocalSource(this.audioPlayerManager);
     }
 

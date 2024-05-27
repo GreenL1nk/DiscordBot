@@ -1,6 +1,11 @@
 package greenlink.shop;
 
+import greenlink.databse.DatabaseConnector;
+import greenlink.economy.EconomyManager;
+import greenlink.economy.EconomyUser;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author t.me/GreenL1nk
@@ -28,6 +33,20 @@ public class RoleShop {
         this.coinMultiplier = coinMultiplier;
         this.price = price;
         this.role = role;
+    }
+
+    @Nullable
+    public String buyRole(Member member) {
+        EconomyUser economyUser = EconomyManager.getInstance().getEconomyUser(member.getUser());
+        if (economyUser == null) return null;
+
+        if (getLeftCount() <= 0) return "Данной роли больше нет в наличии";
+        if (economyUser.getCashBalance() < getPrice()) return "У вас недостаточно наличных средств";
+        economyUser.addCoins(-getPrice());
+        this.leftCount --;
+        DatabaseConnector.getInstance().saveRoleShop(this);
+        member.getGuild().addRoleToMember(member, role).queue();
+        return String.format("Роль <@&%s> была успешно куплена", role.getId());
     }
 
     public String getWorkExp() {

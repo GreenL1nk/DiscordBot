@@ -10,16 +10,22 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author t.me/GreenL1nk
@@ -36,51 +42,58 @@ public class ShopCommand extends SlashCommand {
         if (event.getGuild() == null) return;
         if (!memberCanPerform(member, event)) return;
 
+        RoleShop roleShop = !rolesShop.isEmpty() ? rolesShop.get(0) : null;
+        List<Button> buttons = roleShop == null ? new ArrayList<>() : getButtons(1, roleShop);
+
+
         event.deferReply().queue(reply -> {
-            MessageEmbed embedBuilder = getEmbedBuilder(1);
-            Collection<ActionRow> actionRows = new ArrayList<>();
+            MessageEmbed embedBuilder = getEmbedBuilder(1, roleShop);
             reply.editOriginalEmbeds(embedBuilder)
-                    .setComponents(actionRows).queue();
+                    .setComponents(ActionRow.of(buttons), ActionRow.of((getRoleSelectMenu(rolesShop, 1))))
+                    .queue();
         });
     }
 
     @NotNull
-    public MessageEmbed getEmbedBuilder(int page) {
+    public static MessageEmbed getEmbedBuilder(int roleNum, @Nullable RoleShop role) {
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setColor(Color.decode("#a48ea2"));
 
-        HashMap<Integer, ArrayList<MessageEmbed.Field>> sortedRoles = getSortedRoles();
-        ArrayList<MessageEmbed.Field> fields = sortedRoles.get(page);
+        if (role == null) {
+            embedBuilder.addField("Магазин пока что пуст.", "", false);
+        }
+        else {
+            embedBuilder.addField("Магазин ролей", "", false);
+            embedBuilder.addField("",
+                    String.format("""
+                                    * Роль: **<@&%s>**
+                                    * Цена: **%d**\s
+                                    * Доступно к покупке: **%s**""",
+                            role.getRole().getIdLong(), role.getPrice(), role.getLeftCount()),
+                    true);
+            embedBuilder.addField("Бусты", String.format("""
+                        * /work: **%s**
+                        * /timely: **%s**
+                        * /daily: **%s**
+                        * /weekly: **%s**
+                        * /monthly: **%s**"""
+                    , role.getWorkExp(), role.getTimelyExp(),
+                    role.getDailyExp(), role.getWeeklyExp(), role.getMonthlyExp()), true);
+        }
 
-        embedBuilder.addField("Магазин ролей", "Выберите роль, которую хотите купить", false);
-        if (fields != null) embedBuilder.getFields().addAll(fields);
-
-        embedBuilder.setFooter("Страница " + page + " из " + sortedRoles.size());
+        embedBuilder.setFooter("Роль " + roleNum + " из " + rolesShop.size());
         embedBuilder.setTimestamp(Instant.now());
         return embedBuilder.build();
     }
 
-    public HashMap<Integer, ArrayList<MessageEmbed.Field>> getSortedRoles() {
-        int page = 1;
-        HashMap<Integer, ArrayList<MessageEmbed.Field>> pages = new HashMap<>();
-        ArrayList<MessageEmbed.Field> roles = new ArrayList<>();
-        for (RoleShop role : rolesShop) {
-            roles.add(new MessageEmbed.Field(
-                    String.format("Роль #%d", 1),
-                    String.format("""
-                                    * Роль: **<@&%s>**\s
-                                    * Цена: **%d**\s
-                                    * Доступно к покупке: **%s**""",
-                            role.getRole().getIdLong(), role.getPrice(), role.getLeftCount()),
-                    false
-            ));
-            if (roles.size() == 25 || roles.size() == rolesShop.size()) {
-                pages.put(page, roles);
-                roles = new ArrayList<>();
-                page++;
-            }
-        }
-        return pages;
+    public static List<Button> getButtons(int roleNum, RoleShop role) {
+        List<Button> buttons = new ArrayList<>();
+
+        buttons.add(Button.of(ButtonStyle.SUCCESS, "rolebuy-" + role.getRole().getId(), "Купить"));
+        buttons.add(Button.of(ButtonStyle.SECONDARY, "role-" + (roleNum - 1), "Предыдущая роль").withDisabled(roleNum <= 1));
+        buttons.add(Button.of(ButtonStyle.SECONDARY, "role-" + (roleNum + 1), "Следующая роль").withDisabled(rolesShop.size() < roleNum));
+
+        return buttons;
     }
 
     private void addFromDBRolesShop() {
@@ -112,6 +125,34 @@ public class ShopCommand extends SlashCommand {
         catch (Exception e) {
             BotMain.logger.error("", e);
         }
+    }
+
+    public static SelectMenu getRoleSelectMenu(List<RoleShop> roles, int numRole) {
+        List<RoleShop> copyRoles = new ArrayList<>(roles.stream().filter(roleShop -> roleShop.getLeftCount() > 0).toList());
+        int nextRole = numRole + 1;
+        numRole -= 1;
+        int startIndex = numRole * 23;
+        int endIndex = Math.min(startIndex + 23, copyRoles.size());
+        List<RoleShop> rolesOnPage = copyRoles.subList(startIndex, endIndex);
+
+        int finalNumRole = numRole;
+        List<SelectOption> options = rolesOnPage.stream()
+                .filter(role -> !role.getRole().isPublicRole())
+                .map(role -> SelectOption.of(role.getRole().getName(), "-" + role.getRole().getId() + "-" + finalNumRole))
+                .collect(Collectors.toList());
+
+        if (endIndex < copyRoles.size()) {
+            options.add(SelectOption.of("Перейти на следующую страницу", "rolepage-" + nextRole));
+        }
+        if (numRole > 0) {
+            options.add(SelectOption.of("Перейти на предыдущую страницу", "rolepage-" + numRole));
+        }
+
+        StringSelectMenu.Builder dropdown = StringSelectMenu.create("shopchoose")
+                .addOptions(options)
+                .setPlaceholder("Выберите роль для просмотра");
+
+        return dropdown.build();
     }
 
     public ShopCommand() {

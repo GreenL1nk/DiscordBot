@@ -28,7 +28,7 @@ import java.util.List;
  * @author t.me/GreenL1nk
  * 27.02.2024
  */
-public class ChooseRole extends ArgSelectMenu {
+public class SettingChooseRole extends ArgSelectMenu {
 
     @Override
     public void onSelectMenuInteraction(StringSelectInteractionEvent event) {

@@ -1,5 +1,6 @@
 package global.selectmenus;
 
+import global.BotMain;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 
 /**
@@ -13,4 +14,9 @@ public abstract class ArgSelectMenu implements ISelectMenu {
         return substring.split("-");
     }
 
+    public String[] getValues(StringSelectInteractionEvent event) {
+        String value = event.getValues().get(0);
+        String substring = value.substring(value.indexOf("-") + 1);
+        return substring.split("-");
+    }
 }

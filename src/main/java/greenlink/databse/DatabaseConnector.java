@@ -17,6 +17,7 @@ import greenlink.shop.RoleShop;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -120,6 +121,14 @@ public class DatabaseConnector {
                                      "`price` INT NULL DEFAULT -1, " +
                                      "PRIMARY KEY (`id`) ) " +
                                      "COLLATE='utf8_unicode_ci' ;");
+
+                     PreparedStatement statement7 = conn.prepareStatement(
+                             "CREATE TABLE IF NOT EXISTS `message_data` ( " +
+                                     "`message_id` BIGINT NOT NULL, " +
+                                     "`author_id` BIGINT NOT NULL, " +
+                                     "`content` VARCHAR(2000) NULL DEFAULT NULL, " +
+                                     "PRIMARY KEY (`message_id`) ) " +
+                                     "COLLATE='utf8_unicode_ci' ;");
                 )
                 {
 
@@ -130,6 +139,7 @@ public class DatabaseConnector {
                     statement4.executeUpdate();
                     statement5.executeUpdate();
                     statement6.executeUpdate();
+                    statement7.executeUpdate();
                 }
             }
         } catch (Exception e) {
@@ -547,6 +557,21 @@ public class DatabaseConnector {
             pstmt.executeUpdate();
         } catch (Exception e) {
             BotMain.logger.error("Error delete shoprole", e);
+        }
+    }
+
+    public void saveMessage(MessageReceivedEvent event) {
+        try (Connection conn = getConnection();
+             PreparedStatement statement = conn.prepareStatement(
+                     "INSERT INTO message_data (message_id, author_id, content) VALUES (?, ?, ?)")
+        ) {
+            statement.setLong(1, event.getMessageIdLong());
+            statement.setLong(2, event.getAuthor().getIdLong());
+            statement.setString(3, event.getMessage().getContentRaw());
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            BotMain.logger.error("Failed to save message", e);
         }
     }
 

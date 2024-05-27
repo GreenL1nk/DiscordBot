@@ -1,4 +1,4 @@
-package greenlink.shop.buttons;
+package greenlink.shop.buttons.setting;
 
 import global.buttons.ArgButton;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;

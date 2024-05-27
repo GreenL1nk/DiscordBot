@@ -1,4 +1,4 @@
-package greenlink.shop.buttons;
+package greenlink.shop.buttons.setting;
 
 import global.buttons.ArgButton;
 import greenlink.databse.DatabaseConnector;

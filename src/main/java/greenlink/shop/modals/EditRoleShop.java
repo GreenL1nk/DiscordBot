@@ -48,7 +48,9 @@ public class EditRoleShop extends ArgModal {
         if (event.getValue("roleshop-price") != null) {
             roleShop.setPrice(Integer.parseInt(event.getValue("roleshop-price").getAsString()));
             roleShop.setLeftCount(Integer.parseInt(event.getValue("roleshop-count").getAsString()));
-            roleShop.setCoinMultiplier(event.getValue("roleshop-multiplier") != null ? Double.parseDouble(event.getValue("roleshop-multiplier").getAsString()) : 1);
+            roleShop.setCoinMultiplier(event.getValue(
+                    "roleshop-multiplier") != null && !event.getValue("roleshop-multiplier").getAsString().isEmpty() ?
+                    Double.parseDouble(event.getValue("roleshop-multiplier").getAsString()) : 1);
         }
         else {
             roleShop.setWorkExp(event.getValue("roleshop-work").getAsString());
